@@ -1,0 +1,17 @@
+# Dependencias locais (reinstaladas via npm ci no build)
+src/node_modules
+
+# Volume de dados local do Postgres
+.docker_vol
+
+# Controle de versao
+.git
+.gitignore
+
+# Documentacao e scripts de teste
+*.md
+*.http
+
+# Arquivos de CI/CD e configuracao de IDE
+.github
+.vscode

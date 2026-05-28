@@ -1,0 +1,231 @@
+# ============================================================
+# kube-news — Blue (versão ativa em produção)
+# ============================================================
+
+# 1. Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kube-news
+
+---
+# 2. Secret — credenciais sensíveis (DB_PASSWORD, POSTGRES_PASSWORD)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kube-news-secret
+  namespace: kube-news
+type: Opaque
+stringData:
+  DB_PASSWORD: "Pg#123"
+  POSTGRES_PASSWORD: "Pg#123"
+
+---
+# 3. ConfigMap — configurações não-sensíveis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kube-news-config
+  namespace: kube-news
+data:
+  DB_HOST: "postgres"
+  DB_DATABASE: "kubedevnews"
+  DB_USERNAME: "kubedevnews"
+  DB_PORT: "5432"
+  POSTGRES_DB: "kubedevnews"
+  POSTGRES_USER: "kubedevnews"
+
+---
+# 4. PersistentVolumeClaim — postgres (volume detectado no docker-compose)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: kube-news
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+# 5. Deployment — postgres (infraestrutura stateful)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: kube-news
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:15-alpine
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: kube-news-config
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: kube-news-config
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kube-news-secret
+                  key: POSTGRES_PASSWORD
+            # PGDATA evita falha com diretório lost+found criado pelo ext4 na raiz do PVC
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "kubedevnews", "-d", "kubedevnews"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "kubedevnews", "-d", "kubedevnews"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          # resources:
+          #   requests:
+          #     memory: "256Mi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "512Mi"
+          #     cpu: "1000m"
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-pvc
+
+---
+# 6. Service — postgres (ClusterIP — interno ao cluster)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: kube-news
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+# 7. Deployment — app blue (versão ativa em produção)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kube-news-blue
+  namespace: kube-news
+  labels:
+    app: kube-news
+    version: blue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: kube-news
+      version: blue
+  template:
+    metadata:
+      labels:
+        app: kube-news
+        version: blue
+    spec:
+      containers:
+        - name: kube-news
+          # ALERTA: substitua pela imagem publicada no seu registry antes de aplicar
+          image: updateinformatica/claude-devops:1.0
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: kube-news-config
+                  key: DB_HOST
+            - name: DB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  name: kube-news-config
+                  key: DB_DATABASE
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: kube-news-config
+                  key: DB_USERNAME
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: kube-news-config
+                  key: DB_PORT
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: kube-news-secret
+                  key: DB_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          # resources:
+          #   requests:
+          #     memory: "128Mi"
+          #     cpu: "100m"
+          #   limits:
+          #     memory: "256Mi"
+          #     cpu: "500m"
+
+---
+# 8. Service — produção (LoadBalancer, tráfego direcionado ao blue)
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-news
+  namespace: kube-news
+spec:
+  type: LoadBalancer
+  selector:
+    app: kube-news
+    version: blue
+  ports:
+    - port: 80
+      targetPort: 8080
