@@ -1,15 +1,8 @@
-# ============================================================
-# kube-news — Blue (versão ativa em produção)
-# ============================================================
-
-# 1. Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
   name: kube-news
-
 ---
-# 2. Secret — credenciais sensíveis (DB_PASSWORD, POSTGRES_PASSWORD)
 apiVersion: v1
 kind: Secret
 metadata:
@@ -19,24 +12,20 @@ type: Opaque
 stringData:
   DB_PASSWORD: "Pg#123"
   POSTGRES_PASSWORD: "Pg#123"
-
 ---
-# 3. ConfigMap — configurações não-sensíveis
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: kube-news-config
   namespace: kube-news
 data:
-  DB_HOST: "postgres"
-  DB_DATABASE: "kubedevnews"
-  DB_USERNAME: "kubedevnews"
+  DB_HOST: postgres
+  DB_DATABASE: kubedevnews
+  DB_USERNAME: kubedevnews
   DB_PORT: "5432"
-  POSTGRES_DB: "kubedevnews"
-  POSTGRES_USER: "kubedevnews"
-
+  POSTGRES_DB: kubedevnews
+  POSTGRES_USER: kubedevnews
 ---
-# 4. PersistentVolumeClaim — postgres (volume detectado no docker-compose)
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -48,16 +37,12 @@ spec:
   resources:
     requests:
       storage: 5Gi
-
 ---
-# 5. Deployment — postgres (infraestrutura stateful)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres
   namespace: kube-news
-  labels:
-    app: postgres
 spec:
   replicas: 1
   selector:
@@ -71,8 +56,6 @@ spec:
       containers:
         - name: postgres
           image: postgres:15-alpine
-          ports:
-            - containerPort: 5432
           env:
             - name: POSTGRES_DB
               valueFrom:
@@ -89,9 +72,10 @@ spec:
                 secretKeyRef:
                   name: kube-news-secret
                   key: POSTGRES_PASSWORD
-            # PGDATA evita falha com diretório lost+found criado pelo ext4 na raiz do PVC
             - name: PGDATA
               value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
@@ -120,9 +104,7 @@ spec:
         - name: postgres-data
           persistentVolumeClaim:
             claimName: postgres-pvc
-
 ---
-# 6. Service — postgres (ClusterIP — interno ao cluster)
 apiVersion: v1
 kind: Service
 metadata:
@@ -135,17 +117,12 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
-
 ---
-# 7. Deployment — app blue (versão ativa em produção)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kube-news-blue
   namespace: kube-news
-  labels:
-    app: kube-news
-    version: blue
 spec:
   replicas: 2
   selector:
@@ -160,10 +137,7 @@ spec:
     spec:
       containers:
         - name: kube-news
-          # ALERTA: substitua pela imagem publicada no seu registry antes de aplicar
           image: updateinformatica/claude-devops:1.0
-          ports:
-            - containerPort: 8080
           env:
             - name: DB_HOST
               valueFrom:
@@ -190,6 +164,8 @@ spec:
                 secretKeyRef:
                   name: kube-news-secret
                   key: DB_PASSWORD
+          ports:
+            - containerPort: 8080
           readinessProbe:
             httpGet:
               path: /
@@ -213,9 +189,7 @@ spec:
           #   limits:
           #     memory: "256Mi"
           #     cpu: "500m"
-
 ---
-# 8. Service — produção (LoadBalancer, tráfego direcionado ao blue)
 apiVersion: v1
 kind: Service
 metadata:

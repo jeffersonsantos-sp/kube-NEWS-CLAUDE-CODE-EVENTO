@@ -1,0 +1,22 @@
+{
+    "mcpServers": {
+        "kubernetes": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "-v",
+			"/home/devops/.kube/config:/home/appuser/.kube/config:ro",
+                "mcp/kubernetes"
+            ]
+        },
+        "context7": {
+            "type": "http",
+            "url": "https://mcp.context7.com/mcp",
+            "headers": {
+                "CONTEXT7_API_KEY": "ctx7sk-980f0587-d654-42c3-b21c-3d8ca2065ae3"
+            }
+        }
+    }
+}

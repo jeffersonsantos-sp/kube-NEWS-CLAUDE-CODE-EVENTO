@@ -1,18 +1,8 @@
-# ============================================================
-# kube-news — Green (nova versão / ambiente de preview)
-# Aplique após validar a imagem nova; ative em produção editando
-# o selector do Service em kube-news-blue.yaml: blue → green
-# ============================================================
-
-# Deployment — app green (nova versão em standby)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: kube-news-green
   namespace: kube-news
-  labels:
-    app: kube-news
-    version: green
 spec:
   replicas: 2
   selector:
@@ -27,9 +17,7 @@ spec:
     spec:
       containers:
         - name: kube-news
-          image: updateinformatica/claude-devops:2.0
-          ports:
-            - containerPort: 8080
+          image: updateinformatica/claude-devops:1.0 # atualize a tag antes de aplicar
           env:
             - name: DB_HOST
               valueFrom:
@@ -56,6 +44,8 @@ spec:
                 secretKeyRef:
                   name: kube-news-secret
                   key: DB_PASSWORD
+          ports:
+            - containerPort: 8080
           readinessProbe:
             httpGet:
               path: /
@@ -79,9 +69,7 @@ spec:
           #   limits:
           #     memory: "256Mi"
           #     cpu: "500m"
-
 ---
-# Service — preview (ClusterIP — acesso interno para validação do green)
 apiVersion: v1
 kind: Service
 metadata:

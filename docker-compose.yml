@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: updateinformatica/claude-devops:1.0
+    image: updateinformatica/claude-devops:2.0
     ports:
       - "8080:8080"
     environment:
@@ -13,8 +13,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    volumes:
-      - ./src:/app
 
   postgres:
     image: postgres:15-alpine
