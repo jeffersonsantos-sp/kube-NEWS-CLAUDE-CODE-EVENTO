@@ -13,7 +13,7 @@ variable "aks_subnet_id" {
 
 variable "node_vm_size" {
   type    = string
-  default = "Standard_D2s_v3"
+  default = "Standard_B2s_v2"
 }
 
 variable "system_node_min_count" {
@@ -23,7 +23,7 @@ variable "system_node_min_count" {
 
 variable "system_node_max_count" {
   type    = number
-  default = 3
+  default = 2
 }
 
 variable "user_node_min_count" {
@@ -33,7 +33,7 @@ variable "user_node_min_count" {
 
 variable "user_node_max_count" {
   type    = number
-  default = 3
+  default = 2
 }
 
 variable "tags" {

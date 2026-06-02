@@ -68,9 +68,9 @@ infra/
 | Subnet PostgreSQL | `snet-postgres` | `10.0.4.0/24` — delegada para PostgreSQL Flexible Server (fase 2) |
 | Subnet Private Endpoints | `snet-private-ep` | `10.0.5.0/24` — reserva para ACR, Key Vault (fases futuras) |
 | NSG | `nsg-aks` | Associado à subnet AKS para regras futuras |
-| AKS Cluster | `aks-kube-news` | Cluster Standard Tier, Azure CNI Overlay |
-| Node Pool System | `system` | 1–3 nodes `Standard_D2s_v3`, zonas 1 e 3, somente addons críticos |
-| Node Pool User | `user` | 1–3 nodes `Standard_D2s_v3`, zonas 1 e 3, cargas de aplicação |
+| AKS Cluster | `aks-kube-news` | Cluster Free Tier, Azure CNI Overlay |
+| Node Pool System | `system` | 1–2 nodes `Standard_B2s_v2`, sem AZ fixa, somente addons críticos |
+| Node Pool User | `user` | 1–2 nodes `Standard_B2s_v2`, sem AZ fixa, cargas de aplicação |
 
 ---
 
@@ -85,7 +85,10 @@ infra/
 | Identidade | `SystemAssigned` | Sem credenciais para rotacionar; integração nativa com ACR e Key Vault futuros |
 | OIDC Issuer | Habilitado | Pré-requisito para Workload Identity (fases 2 e 3) |
 | OS upgrade | `NodeImage` | Patches de segurança automáticos nos nodes |
-| Autoscaler | Habilitado (1–3 nodes) | Escala automática sem intervenção manual |
+| SKU Tier | `Free` | Elimina taxa de SLA (~$73/mês); adequado para lab/aprendizado |
+| VM size | `Standard_B2s_v2` | Burstable (2 vCPU / 4 GB) — ~70% mais barato que D2s_v3 para cargas intermitentes |
+| Availability Zones | Desabilitado | B2s burstable tem restrições de AZ; dispensável em ambiente de estudo |
+| Autoscaler | Habilitado (1–2 nodes) | Escala automática sem intervenção manual |
 
 ---
 
@@ -105,11 +108,20 @@ DNS Service IP:       10.1.0.10
 
 ---
 
-## Availability Zones — Australia East
+## Dimensionamento e Custo
 
-> **Atenção:** A região `australiaeast` suporta apenas as zonas **1 e 3**.  
-> A zona 2 não está disponível nessa região.  
-> Os node pools estão configurados com `zones = ["1", "3"]`.
+Esta configuração é otimizada para ambiente de aprendizado/lab:
+
+| Componente | Configuração | Custo estimado (East US) |
+|---|---|---|
+| Node Pool System | 1–2 × `Standard_B2s_v2` | ~$35–70/mês |
+| Node Pool User | 1–2 × `Standard_B2s_v2` | ~$35–70/mês |
+| AKS Free Tier | Sem taxa de SLA | $0 (vs ~$73/mês no Standard) |
+| OS Disk (Managed) | 30 GB por node | ~$2/disco/mês |
+| **Total estimado** | **2–4 nodes ativos** | **~$80–160/mês** |
+
+> `Standard_B2s_v2` é **burstable** — acumula créditos de CPU em idle e os consome em picos.  
+> Para produção com carga contínua, considere `Standard_B2ms` (8 GB) ou `Standard_D2s_v3`.
 
 ---
 

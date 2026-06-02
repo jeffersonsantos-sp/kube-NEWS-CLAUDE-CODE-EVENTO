@@ -15,7 +15,7 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "tfstate" {
-  name     = "rg-tfstate-kube-news"
+  name     = "rg-kube-news-tfstate"
   location = var.location
   tags     = var.tags
 }
@@ -36,7 +36,7 @@ resource "azurerm_storage_account" "tfstate" {
 }
 
 resource "azurerm_storage_container" "tfstate" {
-  name                  = "tfstate"
+  name                  = "kubenews-tfstate"
   storage_account_id    = azurerm_storage_account.tfstate.id
   container_access_type = "private"
 }

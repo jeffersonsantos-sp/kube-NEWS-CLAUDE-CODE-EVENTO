@@ -3,18 +3,17 @@ resource "azurerm_kubernetes_cluster" "this" {
   location            = var.location
   resource_group_name = var.resource_group_name
   dns_prefix          = "aks-kube-news"
-  sku_tier            = "Standard"
+  sku_tier            = "Free"
 
   default_node_pool {
     name                         = "system"
     min_count                    = var.system_node_min_count
     max_count                    = var.system_node_max_count
     vm_size                      = var.node_vm_size
-    zones                        = ["1", "3"]
     vnet_subnet_id               = var.aks_subnet_id
     auto_scaling_enabled         = true
     only_critical_addons_enabled = true
-    os_disk_size_gb              = 50
+    os_disk_size_gb              = 30
     os_disk_type                 = "Managed"
 
     upgrade_settings {
@@ -52,11 +51,10 @@ resource "azurerm_kubernetes_cluster_node_pool" "user" {
   vm_size               = var.node_vm_size
   min_count             = var.user_node_min_count
   max_count             = var.user_node_max_count
-  zones                 = ["1", "3"]
   vnet_subnet_id        = var.aks_subnet_id
   auto_scaling_enabled  = true
   mode                  = "User"
-  os_disk_size_gb       = 50
+  os_disk_size_gb       = 30
   os_disk_type          = "Managed"
 
   upgrade_settings {

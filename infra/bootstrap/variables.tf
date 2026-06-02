@@ -12,7 +12,7 @@ variable "location" {
 variable "storage_account_name" {
   type        = string
   description = "Globally unique name for the Storage Account (3-24 chars, lowercase alphanumeric only)"
-  default     = "stkubenewstfstate"
+  default     = "stkubenewstfstate2026"
 }
 
 variable "tags" {
