@@ -7,10 +7,24 @@
                 "-i",
                 "--rm",
                 "-v",
-			"/home/devops/.kube/config:/home/appuser/.kube/config:ro",
+                "/home/devops/.kube/config:/home/appuser/.kube/config:ro",
                 "mcp/kubernetes"
             ]
         },
+
+        "prometheus": {
+            "command": "docker",
+            "args": [
+                "run",
+                "-i",
+                "--rm",
+                "--network=host",
+                "-e",
+                "PROMETHEUS_URL=http://localhost:9090",
+                "mcp/prometheus"
+            ]
+        },
+
         "context7": {
             "type": "http",
             "url": "https://mcp.context7.com/mcp",

@@ -1,0 +1,22 @@
+# =============================================================================
+# Service dedicado para scrape de métricas da aplicação kube-news
+#
+# A app expõe /metrics na porta 8080 via express-prom-bundle + prom-client.
+# Este Service ClusterIP com label app=kube-news-metrics é selecionado
+# pelo ServiceMonitor (arquivo 04).
+# =============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-news-metrics
+  namespace: kube-news
+  labels:
+    app: kube-news-metrics
+spec:
+  type: ClusterIP
+  selector:
+    app: kube-news          # seleciona pods blue e green (ambas as versões)
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: 8080

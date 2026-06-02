@@ -1,0 +1,24 @@
+# =============================================================================
+# ServiceMonitor — instrui o Prometheus Operator a raspar métricas do kube-news
+#
+# Depende do CRD monitoring.coreos.com/v1 (instalado pelo kube-prometheus-stack).
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-news
+  namespace: kube-news
+  labels:
+    release: kube-prometheus-stack   # necessário se serviceMonitorSelector estiver configurado
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-news
+  selector:
+    matchLabels:
+      app: kube-news-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

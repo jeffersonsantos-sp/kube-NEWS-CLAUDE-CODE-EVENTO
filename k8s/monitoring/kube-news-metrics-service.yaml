@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kube-news-metrics
+  namespace: kube-news
+  labels:
+    app: kube-news-metrics
+spec:
+  type: ClusterIP
+  selector:
+    app: kube-news
+  ports:
+    - name: metrics
+      port: 8080
+      targetPort: 8080

@@ -1,2 +1,9 @@
 src/node_modules
 .docker/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example

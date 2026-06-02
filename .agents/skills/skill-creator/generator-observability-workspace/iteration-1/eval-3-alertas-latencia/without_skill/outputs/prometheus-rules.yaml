@@ -1,0 +1,226 @@
+# =============================================================================
+# PrometheusRule — alertas para pods caindo e latência alta no kube-news
+#
+# Métricas utilizadas:
+#   - kube_pod_container_status_restarts_total  (kube-state-metrics)
+#   - kube_pod_status_ready                     (kube-state-metrics)
+#   - http_request_duration_seconds_bucket      (express-prom-bundle via /metrics)
+#   - http_requests_total                       (custom counter em middleware.js)
+#   - kubelet_volume_stats_*                    (kubelet)
+#   - pg_up                                     (postgres-exporter)
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-news-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+
+    # ------------------------------------------------------------------
+    # 1. PODS — detecção de crash e indisponibilidade
+    # ------------------------------------------------------------------
+    - name: kube-news.pods
+      rules:
+
+        - alert: PodCrashLooping
+          # Dispara se qualquer pod do kube-news restartar mais de 1x em 5 min
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              namespace="kube-news"
+            }[5m]) * 60 > 1
+          for: 2m
+          labels:
+            severity: critical
+            team: kube-news
+          annotations:
+            summary: "Pod {{ $labels.pod }} em CrashLoop"
+            description: |
+              O pod {{ $labels.pod }} (container: {{ $labels.container }}) no namespace
+              {{ $labels.namespace }} está reiniciando continuamente.
+              Taxa: {{ $value | humanize }} restarts/min.
+              Verifique os logs: kubectl logs -n kube-news {{ $labels.pod }} --previous
+
+        - alert: PodNotReady
+          # Dispara se algum pod não estiver Ready por mais de 5 min
+          expr: |
+            kube_pod_status_ready{
+              namespace="kube-news",
+              condition="true"
+            } == 0
+          for: 5m
+          labels:
+            severity: critical
+            team: kube-news
+          annotations:
+            summary: "Pod {{ $labels.pod }} não está Ready"
+            description: |
+              O pod {{ $labels.pod }} no namespace kube-news não está Ready há mais de 5 minutos.
+              Verifique: kubectl describe pod -n kube-news {{ $labels.pod }}
+
+        - alert: DeploymentReplicasMismatch
+          # Dispara se o número de replicas disponíveis for menor que o desejado
+          expr: |
+            kube_deployment_status_replicas_available{namespace="kube-news"}
+            < kube_deployment_spec_replicas{namespace="kube-news"}
+          for: 5m
+          labels:
+            severity: warning
+            team: kube-news
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} com replicas insuficientes"
+            description: |
+              O deployment {{ $labels.deployment }} tem {{ $value }} replicas disponíveis,
+              mas o spec define mais. Verifique os pods e eventos do namespace kube-news.
+
+    # ------------------------------------------------------------------
+    # 2. HTTP — latência e taxa de erros
+    # ------------------------------------------------------------------
+    - name: kube-news.http
+      rules:
+
+        - alert: HighHTTPLatencyP95
+          # Dispara quando o P95 de latência ultrapassar 1 segundo
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{
+                namespace="kube-news"
+              }[5m])) by (le, path)
+            ) > 1
+          for: 5m
+          labels:
+            severity: warning
+            team: kube-news
+          annotations:
+            summary: "Alta latência HTTP (P95) no kube-news"
+            description: |
+              O percentil 95 de latência na rota {{ $labels.path }} está em
+              {{ $value | humanizeDuration }}, acima do limite de 1s.
+              Verifique a carga no banco e o consumo de recursos dos pods.
+
+        - alert: HighHTTPLatencyP99
+          # Dispara quando o P99 ultrapassar 2 segundos — severidade crítica
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{
+                namespace="kube-news"
+              }[5m])) by (le, path)
+            ) > 2
+          for: 5m
+          labels:
+            severity: critical
+            team: kube-news
+          annotations:
+            summary: "Latência HTTP crítica (P99) no kube-news"
+            description: |
+              O percentil 99 de latência na rota {{ $labels.path }} está em
+              {{ $value | humanizeDuration }}, acima de 2s. Impacto severo na experiência do usuário.
+
+        - alert: HighHTTPErrorRate5xx
+          # Dispara quando mais de 5% das requisições retornarem 5xx
+          expr: |
+            sum(rate(http_request_duration_seconds_count{
+              namespace="kube-news",
+              status_code=~"5.."
+            }[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{
+              namespace="kube-news"
+            }[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+            team: kube-news
+          annotations:
+            summary: "Taxa de erros 5xx acima de 5% no kube-news"
+            description: |
+              {{ $value | humanizePercentage }} das requisições estão retornando 5xx.
+              Verifique os logs: kubectl logs -n kube-news -l app=kube-news
+
+        - alert: HTTPRequestRateDropped
+          # Dispara se o throughput cair para zero (possível problema de conectividade)
+          expr: |
+            sum(rate(http_requests_total{namespace="kube-news"}[5m])) == 0
+          for: 5m
+          labels:
+            severity: warning
+            team: kube-news
+          annotations:
+            summary: "Sem requisições HTTP no kube-news"
+            description: |
+              Nenhuma requisição HTTP registrada nos últimos 5 minutos.
+              Pode indicar que o Service ou Ingress está inacessível.
+
+    # ------------------------------------------------------------------
+    # 3. ARMAZENAMENTO — PVC do PostgreSQL
+    # ------------------------------------------------------------------
+    - name: kube-news.storage
+      rules:
+
+        - alert: PVCUsageHigh
+          expr: |
+            (
+              kubelet_volume_stats_used_bytes{namespace="kube-news"}
+              / kubelet_volume_stats_capacity_bytes{namespace="kube-news"}
+            ) > 0.80
+          for: 5m
+          labels:
+            severity: warning
+            team: kube-news
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} acima de 80%"
+            description: |
+              O volume {{ $labels.persistentvolumeclaim }} está com
+              {{ $value | humanizePercentage }} de utilização.
+              Considere expandir o PVC ou limpar dados antigos.
+
+        - alert: PVCUsageCritical
+          expr: |
+            (
+              kubelet_volume_stats_used_bytes{namespace="kube-news"}
+              / kubelet_volume_stats_capacity_bytes{namespace="kube-news"}
+            ) > 0.95
+          for: 2m
+          labels:
+            severity: critical
+            team: kube-news
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} quase cheio (>95%)"
+            description: |
+              URGENTE: O volume {{ $labels.persistentvolumeclaim }} está com
+              {{ $value | humanizePercentage }} de utilização. Risco de falha do PostgreSQL.
+
+    # ------------------------------------------------------------------
+    # 4. BANCO DE DADOS — PostgreSQL via postgres-exporter
+    # ------------------------------------------------------------------
+    - name: kube-news.database
+      rules:
+
+        - alert: PostgreSQLDown
+          expr: pg_up{namespace="kube-news"} == 0
+          for: 2m
+          labels:
+            severity: critical
+            team: kube-news
+          annotations:
+            summary: "PostgreSQL indisponível no kube-news"
+            description: |
+              O postgres-exporter não consegue conectar ao banco de dados.
+              Verifique o pod postgres: kubectl describe pod -n kube-news -l app=postgres
+
+        - alert: PostgreSQLHighConnections
+          # Dispara se conexões ativas ultrapassarem 80% do máximo
+          expr: |
+            sum(pg_stat_activity_count{namespace="kube-news", state="active"})
+            / pg_settings_max_connections{namespace="kube-news"} > 0.80
+          for: 5m
+          labels:
+            severity: warning
+            team: kube-news
+          annotations:
+            summary: "Alto número de conexões ativas no PostgreSQL"
+            description: |
+              {{ $value | humanizePercentage }} das conexões disponíveis estão em uso.
+              Considere revisar o pool de conexões da aplicação.

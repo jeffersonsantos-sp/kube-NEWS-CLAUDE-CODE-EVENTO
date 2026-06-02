@@ -1,0 +1,14 @@
+{
+  "eval_id": 2,
+  "configuration": "with_skill",
+  "expectations": [
+    {"text": "values-kube-prometheus-stack.yaml gerado", "passed": true, "evidence": "arquivo presente no output"},
+    {"text": "Grafana com type: LoadBalancer", "passed": true, "evidence": "type: LoadBalancer encontrado no bloco grafana.service"},
+    {"text": "datasource Loki em additionalDataSources", "passed": true, "evidence": "additionalDataSources com type: loki e url loki-stack.monitoring encontrado"},
+    {"text": "values-loki-stack.yaml gerado", "passed": true, "evidence": "arquivo presente no output"},
+    {"text": "ServiceMonitor da app gerado", "passed": true, "evidence": "kube-news-servicemonitor.yaml presente no output"}
+  ],
+  "pass_count": 5,
+  "total_count": 5,
+  "pass_rate": 1.0
+}

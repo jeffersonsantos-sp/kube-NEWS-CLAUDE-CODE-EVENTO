@@ -1,0 +1,30 @@
+# values-loki-stack.yaml
+# Stack: loki-stack
+# Provedor: Azure AKS
+# Projeto: kube-news
+# Gerado por: generator-observability skill
+
+loki:
+  persistence:
+    enabled: true
+    storageClassName: managed-csi
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+promtail:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+grafana:
+  enabled: false   # já instalado via kube-prometheus-stack

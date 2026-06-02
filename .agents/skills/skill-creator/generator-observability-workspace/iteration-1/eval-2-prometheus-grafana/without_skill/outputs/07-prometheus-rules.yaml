@@ -1,0 +1,133 @@
+# =============================================================================
+# PrometheusRule — alertas para o kube-news
+#
+# Depende do CRD monitoring.coreos.com/v1 (instalado pelo kube-prometheus-stack).
+# Aplique no namespace monitoring (onde o Prometheus está instalado).
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-news-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    # -----------------------------------------------------------------------
+    # Pods
+    # -----------------------------------------------------------------------
+    - name: kube-news.pods
+      rules:
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="kube-news"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} em CrashLoop"
+            description: "Pod {{ $labels.pod }} no namespace {{ $labels.namespace }} reiniciando com frequência."
+
+        - alert: PodNotReady
+          expr: kube_pod_status_ready{namespace="kube-news", condition="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} não está Ready"
+            description: "Pod {{ $labels.pod }} não está pronto há 5 minutos."
+
+    # -----------------------------------------------------------------------
+    # HTTP (métricas da app via express-prom-bundle)
+    # -----------------------------------------------------------------------
+    - name: kube-news.http
+      rules:
+        - alert: HighHTTPLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace="kube-news"}[5m])) by (le, path)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alta latência HTTP no kube-news"
+            description: "P95 de latência na rota {{ $labels.path }} acima de 2s."
+
+        - alert: HighHTTPErrorRate
+          expr: |
+            sum(rate(http_request_duration_seconds_count{namespace="kube-news", status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{namespace="kube-news"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Taxa de erro HTTP acima de 5%"
+            description: "Mais de 5% das requisições retornando 5xx."
+
+    # -----------------------------------------------------------------------
+    # Recursos — CPU e memória
+    # -----------------------------------------------------------------------
+    - name: kube-news.resources
+      rules:
+        - alert: HighCPUUsage
+          expr: |
+            sum(rate(container_cpu_usage_seconds_total{namespace="kube-news", container!=""}[5m])) by (pod)
+            /
+            sum(kube_pod_container_resource_limits{namespace="kube-news", resource="cpu"}) by (pod) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "CPU acima de 80% no pod {{ $labels.pod }}"
+            description: "Pod {{ $labels.pod }} usando mais de 80% do limite de CPU configurado."
+
+        - alert: HighMemoryUsage
+          expr: |
+            sum(container_memory_working_set_bytes{namespace="kube-news", container!=""}) by (pod)
+            /
+            sum(kube_pod_container_resource_limits{namespace="kube-news", resource="memory"}) by (pod) > 0.85
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Memória acima de 85% no pod {{ $labels.pod }}"
+            description: "Pod {{ $labels.pod }} usando mais de 85% do limite de memória configurado."
+
+    # -----------------------------------------------------------------------
+    # Storage
+    # -----------------------------------------------------------------------
+    - name: kube-news.storage
+      rules:
+        - alert: PVCUsageHigh
+          expr: |
+            (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} acima de 80%"
+            description: "Volume {{ $labels.persistentvolumeclaim }} com utilização crítica."
+
+    # -----------------------------------------------------------------------
+    # PostgreSQL (postgres-exporter)
+    # -----------------------------------------------------------------------
+    - name: kube-news.postgres
+      rules:
+        - alert: PostgreSQLDown
+          expr: pg_up{namespace="kube-news"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PostgreSQL indisponível"
+            description: "O postgres-exporter não consegue conectar ao banco de dados."
+
+        - alert: PostgreSQLHighConnections
+          expr: pg_stat_activity_count{namespace="kube-news"} > 80
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Muitas conexões abertas no PostgreSQL"
+            description: "Há {{ $value }} conexões ativas — verifique connection pooling."

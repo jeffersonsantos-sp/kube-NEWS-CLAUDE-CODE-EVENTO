@@ -1,0 +1,19 @@
+{
+  "eval_id": 1,
+  "configuration": "without_skill",
+  "expectations": [
+    {"text": "values-kube-prometheus-stack.yaml gerado", "passed": true, "evidence": "arquivo presente no output"},
+    {"text": "kubeScheduler desabilitado para AKS", "passed": true, "evidence": "kubeScheduler: enabled: false encontrado — baseline leu o cluster e detectou AKS"},
+    {"text": "kubeControllerManager desabilitado para AKS", "passed": true, "evidence": "kubeControllerManager: enabled: false encontrado"},
+    {"text": "kubeEtcd desabilitado para AKS", "passed": true, "evidence": "kubeEtcd: enabled: false encontrado"},
+    {"text": "storage class managed-csi para AKS", "passed": true, "evidence": "storageClassName: managed-csi encontrado"},
+    {"text": "email jefferson@empresa.com no AlertManager", "passed": true, "evidence": "smtp_from: jefferson@empresa.com encontrado"},
+    {"text": "values-loki-stack.yaml gerado", "passed": true, "evidence": "arquivo presente no output"},
+    {"text": "postgres-exporter.yaml gerado", "passed": true, "evidence": "arquivo presente no output"},
+    {"text": "prometheus-rules.yaml gerado", "passed": true, "evidence": "arquivo presente no output"},
+    {"text": "OBSERVABILITY.md gerado", "passed": false, "evidence": "arquivo OBSERVABILITY.md não existe — baseline gerou grafana-dashboard-kube-news.json e install-commands.sh no lugar"}
+  ],
+  "pass_count": 9,
+  "total_count": 10,
+  "pass_rate": 0.9
+}

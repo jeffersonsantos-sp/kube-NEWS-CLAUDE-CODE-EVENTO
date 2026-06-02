@@ -1,0 +1,22 @@
+# kube-news-servicemonitor.yaml
+# ServiceMonitor para coleta de métricas da app kube-news
+# App já instrumentada com prom-client + express-prom-bundle
+# Endpoint: /metrics na porta 8080
+# Gerado por: generator-observability skill
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-news
+  namespace: kube-news
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-news
+  selector:
+    matchLabels:
+      app: kube-news-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

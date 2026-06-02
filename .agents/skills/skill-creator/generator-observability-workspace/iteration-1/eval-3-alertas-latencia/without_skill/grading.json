@@ -1,0 +1,14 @@
+{
+  "eval_id": 3,
+  "configuration": "without_skill",
+  "expectations": [
+    {"text": "prometheus-rules.yaml gerado", "passed": true, "evidence": "arquivo presente no output"},
+    {"text": "alerta PodCrashLooping presente", "passed": true, "evidence": "alert: PodCrashLooping encontrado no prometheus-rules.yaml"},
+    {"text": "alerta PodNotReady presente", "passed": true, "evidence": "alert: PodNotReady encontrado no prometheus-rules.yaml"},
+    {"text": "alerta HighHTTPLatency presente", "passed": true, "evidence": "alert: HighHTTPLatencyP95 e HighHTTPLatencyP99 encontrados — conceito presente com nome diferente"},
+    {"text": "AlertManager com bloco smtp configurado", "passed": true, "evidence": "smtp_smarthost: smtp.gmail.com:587 encontrado no values-kube-prometheus-stack.yaml"}
+  ],
+  "pass_count": 5,
+  "total_count": 5,
+  "pass_rate": 1.0
+}

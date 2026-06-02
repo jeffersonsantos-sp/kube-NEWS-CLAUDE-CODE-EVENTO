@@ -1,0 +1,49 @@
+# =============================================================================
+# loki-stack — values.yaml
+# Chart: grafana/loki-stack  (Loki + Promtail)
+#
+# Instalar:
+#   helm repo add grafana https://grafana.github.io/helm-charts
+#   helm repo update
+#   helm upgrade --install loki-stack grafana/loki-stack \
+#     --namespace monitoring --create-namespace \
+#     --values 02-values-loki-stack.yaml
+#
+# NOTA: grafana/loki-stack está deprecated. Para novas instalações considere
+#       grafana/loki (modo single-binary ou microservices) + grafana/promtail.
+# =============================================================================
+
+# Loki — armazenamento persistente de logs
+loki:
+  persistence:
+    enabled: true
+    storageClassName: standard   # ajuste: managed-csi (AKS), standard-rwo (GKE), gp2 (EKS)
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+# Promtail — DaemonSet que coleta logs de todos os containers
+promtail:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+  config:
+    snippets:
+      # Enriquece todos os logs com label do namespace para facilitar filtros no Grafana
+      extraRelabelConfigs:
+        - action: replace
+          source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+
+# Grafana já instalado via kube-prometheus-stack — não instalar aqui
+grafana:
+  enabled: false

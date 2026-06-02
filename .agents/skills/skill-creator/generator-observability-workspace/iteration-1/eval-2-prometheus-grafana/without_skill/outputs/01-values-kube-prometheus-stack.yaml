@@ -1,0 +1,176 @@
+# =============================================================================
+# kube-prometheus-stack — values.yaml
+# Chart: prometheus-community/kube-prometheus-stack
+# Alvo: Kubernetes genérico (sem managed control-plane)
+#
+# Instalar:
+#   helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+#   helm repo update
+#   helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+#     --namespace monitoring --create-namespace \
+#     --values 01-values-kube-prometheus-stack.yaml
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# Componentes do control-plane gerenciados pela nuvem (AKS/GKE/EKS)
+# Desabilite os blocos abaixo apenas se estiver em cluster gerenciado.
+# Em cluster auto-hospedado, remova ou comente essas seções.
+# ---------------------------------------------------------------------------
+kubeScheduler:
+  enabled: false          # gerenciado pela nuvem — scrape inacessível
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  rules:
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeControllerManager: false
+    etcd: false
+    kubeProxy: false
+
+# ---------------------------------------------------------------------------
+# Prometheus
+# ---------------------------------------------------------------------------
+prometheus:
+  prometheusSpec:
+    retention: 30d
+
+    # Descobre ServiceMonitors e PodMonitors em TODOS os namespaces
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+
+    # PVC para persistência de métricas (sobrevive a reinícios)
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          # Substitua pela StorageClass do seu cluster:
+          #   AKS  → managed-csi
+          #   GKE  → standard-rwo
+          #   EKS  → gp2 ou gp3
+          #   Kind/Minikube → standard
+          storageClassName: standard
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+# ---------------------------------------------------------------------------
+# Grafana
+# ---------------------------------------------------------------------------
+grafana:
+  adminUser: admin
+  adminPassword: "KubeNews@Monitoring2026"  # ALTERE no primeiro acesso
+
+  service:
+    type: LoadBalancer   # Expõe IP público; use NodePort ou ClusterIP + Ingress se preferir
+
+  persistence:
+    enabled: true
+    storageClassName: standard   # ajuste conforme cluster (ver acima)
+    size: 5Gi
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+  # Datasources provisionados automaticamente
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki-stack.monitoring.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
+
+  # Dashboards embutidos automaticamente no Grafana
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: kube-news
+          orgId: 1
+          folder: "KubeNews"
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/kube-news
+
+  # Configmap com dashboards JSON será montado pelo Grafana automaticamente
+  dashboardsConfigMaps:
+    kube-news: "grafana-dashboard-kube-news"
+
+# ---------------------------------------------------------------------------
+# AlertManager
+# ---------------------------------------------------------------------------
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  config:
+    global:
+      smtp_smarthost: "smtp.gmail.com:587"
+      smtp_from: "updateinformatica2019@gmail.com"
+      smtp_auth_username: "updateinformatica2019@gmail.com"
+      smtp_auth_password: "REPLACE_WITH_GMAIL_APP_PASSWORD"
+      smtp_require_tls: true
+    route:
+      group_by: ["alertname", "namespace"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: "email-notifications"
+    receivers:
+      - name: "null"
+      - name: "email-notifications"
+        email_configs:
+          - to: "updateinformatica2019@gmail.com"
+            send_resolved: true
+    inhibit_rules:
+      - source_matchers:
+          - 'severity="critical"'
+        target_matchers:
+          - 'severity="warning"'
+        equal:
+          - alertname
+          - namespace
+
+# ---------------------------------------------------------------------------
+# Node Exporter — métricas de CPU, memória, disco dos nós
+# ---------------------------------------------------------------------------
+nodeExporter:
+  enabled: true
+
+# ---------------------------------------------------------------------------
+# kube-state-metrics — estado dos objetos Kubernetes
+# ---------------------------------------------------------------------------
+kubeStateMetrics:
+  enabled: true

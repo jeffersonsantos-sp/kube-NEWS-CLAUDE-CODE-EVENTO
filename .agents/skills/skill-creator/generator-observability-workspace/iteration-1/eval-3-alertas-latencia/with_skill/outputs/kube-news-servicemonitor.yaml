@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-news
+  namespace: kube-news
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-news
+  selector:
+    matchLabels:
+      app: kube-news-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

@@ -1,0 +1,64 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-news-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: kube-news.pods
+      rules:
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="kube-news"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} em CrashLoop"
+            description: "Pod {{ $labels.pod }} no namespace {{ $labels.namespace }} reiniciando com frequência."
+
+        - alert: PodNotReady
+          expr: kube_pod_status_ready{namespace="kube-news", condition="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} não está Ready"
+            description: "Pod {{ $labels.pod }} no namespace kube-news não está pronto há 5 minutos."
+
+    - name: kube-news.http
+      rules:
+        - alert: HighHTTPLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace="kube-news"}[5m])) by (le, path)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alta latência HTTP no kube-news"
+            description: "P95 de latência na rota {{ $labels.path }} acima de 2s."
+
+        - alert: HighHTTPErrorRate
+          expr: |
+            sum(rate(http_request_duration_seconds_count{namespace="kube-news", status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_request_duration_seconds_count{namespace="kube-news"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Taxa de erro HTTP acima de 5%"
+            description: "Mais de 5% das requisições retornando 5xx no kube-news."
+
+    - name: kube-news.storage
+      rules:
+        - alert: PVCUsageHigh
+          expr: |
+            (kubelet_volume_stats_used_bytes / kubelet_volume_stats_capacity_bytes) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} acima de 80%"
+            description: "Volume {{ $labels.persistentvolumeclaim }} com utilização crítica de armazenamento."

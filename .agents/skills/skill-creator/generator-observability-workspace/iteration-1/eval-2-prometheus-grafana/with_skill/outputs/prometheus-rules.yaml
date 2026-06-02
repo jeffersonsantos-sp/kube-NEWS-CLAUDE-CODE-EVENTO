@@ -1,0 +1,73 @@
+# prometheus-rules.yaml
+# Alerting rules for kube-news namespace
+# Includes: Pod health, HTTP latency/errors (app is instrumented), PVC usage
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-news-rules
+  namespace: kube-news
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    - name: kube-news.pods
+      rules:
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="kube-news"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash-looping"
+            description: "Pod {{ $labels.pod }} in namespace kube-news has been restarting for more than 5 minutes."
+
+        - alert: PodNotReady
+          expr: kube_pod_status_ready{namespace="kube-news", condition="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} is not ready"
+            description: "Pod {{ $labels.pod }} in namespace kube-news has been in a non-ready state for more than 5 minutes."
+
+    - name: kube-news.http
+      # App is instrumented with prom-client + express-prom-bundle — HTTP metrics are available
+      rules:
+        - alert: HighHTTPLatency
+          expr: |
+            histogram_quantile(0.95,
+              rate(http_request_duration_seconds_bucket{namespace="kube-news"}[5m])
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High HTTP latency on kube-news"
+            description: "95th percentile latency is above 2s for more than 5 minutes."
+
+        - alert: HighHTTPErrorRate
+          expr: |
+            rate(http_requests_total{namespace="kube-news", status=~"5.."}[5m])
+            /
+            rate(http_requests_total{namespace="kube-news"}[5m]) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High HTTP 5xx error rate on kube-news"
+            description: "More than 5% of HTTP requests are returning 5xx errors."
+
+    - name: kube-news.storage
+      rules:
+        - alert: PVCUsageHigh
+          expr: |
+            kubelet_volume_stats_used_bytes{namespace="kube-news"}
+            /
+            kubelet_volume_stats_capacity_bytes{namespace="kube-news"} > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PVC usage above 80% in kube-news"
+            description: "PersistentVolumeClaim {{ $labels.persistentvolumeclaim }} is using more than 80% of its capacity."

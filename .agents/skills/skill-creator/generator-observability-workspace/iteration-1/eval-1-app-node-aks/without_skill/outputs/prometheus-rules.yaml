@@ -1,0 +1,155 @@
+# PrometheusRule — alertas de negócio e infra para o kube-news no AKS
+# Alertas disparam email para jefferson@empresa.com via AlertManager
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: kube-news-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+    # ─── Pods / Infra ──────────────────────────────────────────────────────────
+    - name: kube-news.pods
+      rules:
+        - alert: PodCrashLooping
+          expr: rate(kube_pod_container_status_restarts_total{namespace="kube-news"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} em CrashLoop"
+            description: "Pod {{ $labels.pod }} no namespace {{ $labels.namespace }} está reiniciando com frequência há mais de 5 minutos."
+
+        - alert: PodNotReady
+          expr: kube_pod_status_ready{namespace="kube-news", condition="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Pod {{ $labels.pod }} não está Ready"
+            description: "Pod {{ $labels.pod }} no namespace kube-news não está pronto há 5 minutos."
+
+        - alert: DeploymentReplicasMismatch
+          expr: |
+            kube_deployment_spec_replicas{namespace="kube-news"}
+            != kube_deployment_status_replicas_available{namespace="kube-news"}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Deployment {{ $labels.deployment }} com réplicas insuficientes"
+            description: "Deployment {{ $labels.deployment }} esperava {{ $value }} réplicas disponíveis mas tem menos."
+
+    # ─── HTTP / Aplicação Node.js ──────────────────────────────────────────────
+    - name: kube-news.http
+      rules:
+        - alert: HighHTTPLatency
+          expr: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{namespace="kube-news"}[5m])) by (le, path)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Alta latência HTTP no kube-news"
+            description: "P95 de latência na rota {{ $labels.path }} está acima de 2 segundos."
+
+        - alert: HighHTTPErrorRate
+          expr: |
+            sum(rate(http_requests_total{namespace="kube-news", status_code=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{namespace="kube-news"}[5m])) > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Taxa de erro HTTP acima de 5%"
+            description: "Mais de 5% das requisições retornando 5xx no kube-news nas últimas 5 minutos."
+
+        - alert: NodeJSHighMemoryUsage
+          expr: |
+            process_resident_memory_bytes{namespace="kube-news"} > 200 * 1024 * 1024
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Uso de memória elevado no processo Node.js"
+            description: "Pod {{ $labels.pod }} consumindo mais de 200MB de memória RSS há 10 minutos."
+
+        - alert: AppDown
+          expr: up{job="kube-news", namespace="kube-news"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "kube-news está DOWN"
+            description: "Prometheus não consegue coletar métricas do kube-news. A aplicação pode estar fora do ar."
+
+    # ─── PostgreSQL ────────────────────────────────────────────────────────────
+    - name: kube-news.postgres
+      rules:
+        - alert: PostgreSQLDown
+          expr: pg_up{namespace="kube-news"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PostgreSQL está DOWN"
+            description: "Exporter do PostgreSQL no namespace kube-news não consegue conectar ao banco de dados."
+
+        - alert: PostgreSQLHighConnections
+          expr: |
+            pg_stat_activity_count{namespace="kube-news"}
+            / pg_settings_max_connections{namespace="kube-news"} > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PostgreSQL com alta ocupação de conexões"
+            description: "Mais de 80% das conexões disponíveis do PostgreSQL estão em uso."
+
+        - alert: PostgreSQLDeadlocks
+          expr: rate(pg_stat_database_deadlocks{namespace="kube-news"}[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Deadlocks detectados no PostgreSQL"
+            description: "O banco de dados kubedevnews está apresentando deadlocks."
+
+        - alert: PostgreSQLSlowQueries
+          expr: |
+            pg_stat_activity_max_tx_duration{namespace="kube-news", state="active"} > 300
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Queries lentas no PostgreSQL"
+            description: "Há transações ativas com duração acima de 5 minutos no PostgreSQL."
+
+    # ─── Armazenamento ─────────────────────────────────────────────────────────
+    - name: kube-news.storage
+      rules:
+        - alert: PVCUsageHigh
+          expr: |
+            (kubelet_volume_stats_used_bytes{namespace="kube-news"}
+            / kubelet_volume_stats_capacity_bytes{namespace="kube-news"}) > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} acima de 80%"
+            description: "Volume {{ $labels.persistentvolumeclaim }} está com {{ $value | humanizePercentage }} de utilização."
+
+        - alert: PVCUsageCritical
+          expr: |
+            (kubelet_volume_stats_used_bytes{namespace="kube-news"}
+            / kubelet_volume_stats_capacity_bytes{namespace="kube-news"}) > 0.95
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: "PVC {{ $labels.persistentvolumeclaim }} CRITICO - acima de 95%"
+            description: "Volume {{ $labels.persistentvolumeclaim }} quase cheio. Risco de perda de dados iminente."

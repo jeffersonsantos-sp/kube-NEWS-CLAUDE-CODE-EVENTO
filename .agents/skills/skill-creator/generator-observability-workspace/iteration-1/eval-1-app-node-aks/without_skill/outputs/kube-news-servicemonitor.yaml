@@ -1,0 +1,22 @@
+# ServiceMonitor para o kube-news (Node.js)
+# Prometheus coleta métricas expostas pelo express-prom-bundle em /metrics
+# Métricas disponíveis: http_requests_total, http_request_duration_seconds, process_*, nodejs_*
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-news
+  namespace: kube-news
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-news
+  selector:
+    matchLabels:
+      app: kube-news-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

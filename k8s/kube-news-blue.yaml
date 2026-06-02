@@ -93,13 +93,13 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
             failureThreshold: 5
-          # resources:
-          #   requests:
-          #     memory: "256Mi"
-          #     cpu: "250m"
-          #   limits:
-          #     memory: "512Mi"
-          #     cpu: "1000m"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
@@ -166,6 +166,7 @@ spec:
                   key: DB_PASSWORD
           ports:
             - containerPort: 8080
+              name: http
           readinessProbe:
             httpGet:
               path: /
@@ -182,13 +183,13 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 3
-          # resources:
-          #   requests:
-          #     memory: "128Mi"
-          #     cpu: "100m"
-          #   limits:
-          #     memory: "256Mi"
-          #     cpu: "500m"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
 ---
 apiVersion: v1
 kind: Service

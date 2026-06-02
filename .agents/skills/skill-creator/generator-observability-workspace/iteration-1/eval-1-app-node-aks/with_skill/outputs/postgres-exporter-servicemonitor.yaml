@@ -1,0 +1,20 @@
+# postgres-exporter-servicemonitor.yaml
+# ServiceMonitor para coleta de métricas do postgres-exporter
+# Gerado por: generator-observability skill
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: postgres-exporter
+  namespace: kube-news
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-news
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

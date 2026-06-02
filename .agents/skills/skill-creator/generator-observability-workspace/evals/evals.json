@@ -1,0 +1,109 @@
+{
+  "skill_name": "generator-observability",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Quero adicionar observabilidade completa ao meu projeto. Tenho uma app Node.js com PostgreSQL rodando no AKS. Preciso de métricas, logs e alertas por email para jefferson@empresa.com",
+      "expected_output": "Gerar todos os arquivos em k8s/monitoring/ com componentes AKS desabilitados, storage class managed-csi, postgres-exporter, email configurado e OBSERVABILITY.md",
+      "files": [],
+      "assertions": [
+        {
+          "name": "values-kube-prometheus-stack gerado",
+          "check": "arquivo values-kube-prometheus-stack.yaml existe no output"
+        },
+        {
+          "name": "kubeScheduler desabilitado para AKS",
+          "check": "values-kube-prometheus-stack.yaml contém 'kubeScheduler' com 'enabled: false'"
+        },
+        {
+          "name": "kubeControllerManager desabilitado para AKS",
+          "check": "values-kube-prometheus-stack.yaml contém 'kubeControllerManager' com 'enabled: false'"
+        },
+        {
+          "name": "kubeEtcd desabilitado para AKS",
+          "check": "values-kube-prometheus-stack.yaml contém 'kubeEtcd' com 'enabled: false'"
+        },
+        {
+          "name": "storage class managed-csi para AKS",
+          "check": "values-kube-prometheus-stack.yaml contém 'managed-csi'"
+        },
+        {
+          "name": "email do usuário no AlertManager",
+          "check": "values-kube-prometheus-stack.yaml contém 'jefferson@empresa.com'"
+        },
+        {
+          "name": "values-loki-stack gerado",
+          "check": "arquivo values-loki-stack.yaml existe no output"
+        },
+        {
+          "name": "postgres-exporter gerado",
+          "check": "arquivo postgres-exporter.yaml existe no output"
+        },
+        {
+          "name": "prometheus-rules gerado",
+          "check": "arquivo prometheus-rules.yaml existe no output"
+        },
+        {
+          "name": "OBSERVABILITY.md gerado",
+          "check": "arquivo OBSERVABILITY.md existe no output"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Adiciona um stack de monitoramento com Prometheus e Grafana no cluster. Quero ver dashboards de CPU, memória e também as métricas da aplicação",
+      "expected_output": "Gerar values-kube-prometheus-stack.yaml com Grafana LoadBalancer, values-loki-stack.yaml, ServiceMonitor da app e datasource Loki no Grafana",
+      "files": [],
+      "assertions": [
+        {
+          "name": "values-kube-prometheus-stack gerado",
+          "check": "arquivo values-kube-prometheus-stack.yaml existe no output"
+        },
+        {
+          "name": "Grafana com LoadBalancer",
+          "check": "values-kube-prometheus-stack.yaml contém 'type: LoadBalancer'"
+        },
+        {
+          "name": "datasource Loki configurado",
+          "check": "values-kube-prometheus-stack.yaml contém 'additionalDataSources' e 'loki'"
+        },
+        {
+          "name": "values-loki-stack gerado",
+          "check": "arquivo values-loki-stack.yaml existe no output"
+        },
+        {
+          "name": "ServiceMonitor da app gerado",
+          "check": "existe arquivo *servicemonitor*.yaml no output"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Como faço pra monitorar minha aplicação k8s? Quero saber se os pods estão caindo e receber alertas quando a latência subir",
+      "expected_output": "Gerar prometheus-rules.yaml com alertas PodCrashLooping, PodNotReady e HighHTTPLatency, e AlertManager configurado",
+      "files": [],
+      "assertions": [
+        {
+          "name": "prometheus-rules gerado",
+          "check": "arquivo prometheus-rules.yaml existe no output"
+        },
+        {
+          "name": "alerta PodCrashLooping presente",
+          "check": "prometheus-rules.yaml contém 'PodCrashLooping'"
+        },
+        {
+          "name": "alerta PodNotReady presente",
+          "check": "prometheus-rules.yaml contém 'PodNotReady'"
+        },
+        {
+          "name": "alerta HighHTTPLatency presente",
+          "check": "prometheus-rules.yaml contém 'HighHTTPLatency'"
+        },
+        {
+          "name": "AlertManager configurado",
+          "check": "values-kube-prometheus-stack.yaml contém bloco 'alertmanager' com 'smtp'"
+        }
+      ]
+    }
+  ]
+}

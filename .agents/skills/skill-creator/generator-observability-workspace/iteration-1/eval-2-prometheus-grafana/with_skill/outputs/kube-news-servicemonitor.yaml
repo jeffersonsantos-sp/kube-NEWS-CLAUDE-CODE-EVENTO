@@ -1,0 +1,23 @@
+# kube-news-servicemonitor.yaml
+# ServiceMonitor for kube-news application (Node.js + prom-client + express-prom-bundle)
+# Endpoint: /metrics on port 8080
+# Scrape interval: 30s
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-news
+  namespace: kube-news
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-news
+  selector:
+    matchLabels:
+      app: kube-news-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

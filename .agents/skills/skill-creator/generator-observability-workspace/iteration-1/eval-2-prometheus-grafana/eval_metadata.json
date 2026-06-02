@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "prometheus-grafana-dashboards",
+  "prompt": "Adiciona um stack de monitoramento com Prometheus e Grafana no cluster. Quero ver dashboards de CPU, memória e também as métricas da aplicação",
+  "assertions": [
+    {"text": "values-kube-prometheus-stack.yaml gerado", "passed": null, "evidence": ""},
+    {"text": "Grafana com type: LoadBalancer", "passed": null, "evidence": ""},
+    {"text": "datasource Loki em additionalDataSources", "passed": null, "evidence": ""},
+    {"text": "values-loki-stack.yaml gerado", "passed": null, "evidence": ""},
+    {"text": "ServiceMonitor da app gerado", "passed": null, "evidence": ""}
+  ]
+}

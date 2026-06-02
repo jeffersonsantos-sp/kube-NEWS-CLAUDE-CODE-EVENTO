@@ -1,0 +1,24 @@
+# =============================================================================
+# ServiceMonitor — instrui o Prometheus a fazer scrape do /metrics do kube-news
+# Requer: kube-prometheus-stack instalado no namespace monitoring
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kube-news
+  namespace: kube-news
+  labels:
+    # Label usado pelo Prometheus para descobrir este monitor
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - kube-news
+  selector:
+    matchLabels:
+      app: kube-news-metrics
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s
+      scrapeTimeout: 10s

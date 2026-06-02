@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "skill_name": "generator-observability",
+    "skill_path": "/home/devops/Desktop/project_devops/kube-NEWS-CLAUDE-CODE-EVENTO/.claude/skills/generator-observability",
+    "executor_model": "claude-sonnet-4-6",
+    "timestamp": "2026-05-29T21:53:37Z",
+    "evals_run": ["app-node-aks-email", "prometheus-grafana-dashboards", "alertas-pods-latencia"],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": 1,
+      "eval_name": "app-node-aks-email",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0, "passed": 10, "failed": 0, "total": 10,
+        "time_seconds": 172.6, "tokens": 29600, "errors": 0
+      },
+      "expectations": [
+        {"text": "values-kube-prometheus-stack.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "kubeScheduler desabilitado para AKS", "passed": true, "evidence": "kubeScheduler: enabled: false encontrado"},
+        {"text": "kubeControllerManager desabilitado para AKS", "passed": true, "evidence": "encontrado"},
+        {"text": "kubeEtcd desabilitado para AKS", "passed": true, "evidence": "encontrado"},
+        {"text": "storage class managed-csi para AKS", "passed": true, "evidence": "storageClassName: managed-csi encontrado"},
+        {"text": "email jefferson@empresa.com no AlertManager", "passed": true, "evidence": "smtp_from: jefferson@empresa.com"},
+        {"text": "values-loki-stack.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "postgres-exporter.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "prometheus-rules.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "OBSERVABILITY.md gerado", "passed": true, "evidence": "arquivo presente"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 1,
+      "eval_name": "app-node-aks-email",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.9, "passed": 9, "failed": 1, "total": 10,
+        "time_seconds": 222.2, "tokens": 37974, "errors": 0
+      },
+      "expectations": [
+        {"text": "values-kube-prometheus-stack.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "kubeScheduler desabilitado para AKS", "passed": true, "evidence": "baseline detectou AKS via cluster"},
+        {"text": "kubeControllerManager desabilitado para AKS", "passed": true, "evidence": "encontrado"},
+        {"text": "kubeEtcd desabilitado para AKS", "passed": true, "evidence": "encontrado"},
+        {"text": "storage class managed-csi para AKS", "passed": true, "evidence": "managed-csi encontrado"},
+        {"text": "email jefferson@empresa.com no AlertManager", "passed": true, "evidence": "smtp_from: jefferson@empresa.com"},
+        {"text": "values-loki-stack.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "postgres-exporter.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "prometheus-rules.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "OBSERVABILITY.md gerado", "passed": false, "evidence": "não existe — baseline gerou grafana-dashboard-kube-news.json e install-commands.sh em vez disso"}
+      ],
+      "notes": ["Baseline gerou arquivos extras (dashboard JSON, install script) mas não gerou OBSERVABILITY.md"]
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "prometheus-grafana-dashboards",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5,
+        "time_seconds": 185.6, "tokens": 32594, "errors": 0
+      },
+      "expectations": [
+        {"text": "values-kube-prometheus-stack.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "Grafana com type: LoadBalancer", "passed": true, "evidence": "type: LoadBalancer encontrado"},
+        {"text": "datasource Loki em additionalDataSources", "passed": true, "evidence": "additionalDataSources com type: loki encontrado"},
+        {"text": "values-loki-stack.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "ServiceMonitor da app gerado", "passed": true, "evidence": "kube-news-servicemonitor.yaml presente"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 2,
+      "eval_name": "prometheus-grafana-dashboards",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5,
+        "time_seconds": 213.0, "tokens": 40412, "errors": 0
+      },
+      "expectations": [
+        {"text": "values-kube-prometheus-stack.yaml gerado", "passed": true, "evidence": "01-values-kube-prometheus-stack.yaml com prefixo numérico"},
+        {"text": "Grafana com type: LoadBalancer", "passed": true, "evidence": "encontrado"},
+        {"text": "datasource Loki em additionalDataSources", "passed": true, "evidence": "encontrado"},
+        {"text": "values-loki-stack.yaml gerado", "passed": true, "evidence": "02-values-loki-stack.yaml presente"},
+        {"text": "ServiceMonitor da app gerado", "passed": true, "evidence": "04-kube-news-servicemonitor.yaml presente"}
+      ],
+      "notes": ["REGRESSÃO NÃO CAPTURADA: storageClassName: standard em vez de managed-csi — baseline falhou na detecção AKS para prompt genérico"]
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "alertas-pods-latencia",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5,
+        "time_seconds": 205.8, "tokens": 33987, "errors": 0
+      },
+      "expectations": [
+        {"text": "prometheus-rules.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "alerta PodCrashLooping presente", "passed": true, "evidence": "alert: PodCrashLooping encontrado"},
+        {"text": "alerta PodNotReady presente", "passed": true, "evidence": "alert: PodNotReady encontrado"},
+        {"text": "alerta HighHTTPLatency presente", "passed": true, "evidence": "alert: HighHTTPLatency (nome exato) encontrado"},
+        {"text": "AlertManager com bloco smtp configurado", "passed": true, "evidence": "smtp_smarthost: smtp.gmail.com:587 encontrado"}
+      ],
+      "notes": []
+    },
+    {
+      "eval_id": 3,
+      "eval_name": "alertas-pods-latencia",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0, "passed": 5, "failed": 0, "total": 5,
+        "time_seconds": 233.7, "tokens": 35614, "errors": 0
+      },
+      "expectations": [
+        {"text": "prometheus-rules.yaml gerado", "passed": true, "evidence": "arquivo presente"},
+        {"text": "alerta PodCrashLooping presente", "passed": true, "evidence": "alert: PodCrashLooping encontrado"},
+        {"text": "alerta PodNotReady presente", "passed": true, "evidence": "alert: PodNotReady encontrado"},
+        {"text": "alerta HighHTTPLatency presente", "passed": true, "evidence": "HighHTTPLatencyP95 e P99 encontrados — conceito presente, nome diferente"},
+        {"text": "AlertManager com bloco smtp configurado", "passed": true, "evidence": "smtp_smarthost encontrado"}
+      ],
+      "notes": ["Baseline gerou 11 arquivos (vs 7 com skill) incluindo dashboard JSON e alertmanager-secret separado"]
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {"mean": 1.0, "stddev": 0.0, "min": 1.0, "max": 1.0},
+      "time_seconds": {"mean": 188.0, "stddev": 13.7, "min": 172.6, "max": 205.8},
+      "tokens": {"mean": 32060, "stddev": 1790, "min": 29600, "max": 33987}
+    },
+    "without_skill": {
+      "pass_rate": {"mean": 0.967, "stddev": 0.047, "min": 0.9, "max": 1.0},
+      "time_seconds": {"mean": 222.9, "stddev": 10.3, "min": 213.0, "max": 233.7},
+      "tokens": {"mean": 38000, "stddev": 1970, "min": 35614, "max": 40412}
+    },
+    "delta": {
+      "pass_rate": "+0.033",
+      "time_seconds": "-34.9s (skill é mais rápida)",
+      "tokens": "-5940 (skill usa menos tokens)"
+    }
+  },
+  "notes": [
+    "OBSERVABILITY.md é o único diferenciador quantitativo capturado: skill gera sempre (100%), baseline nunca gera (0%)",
+    "Regressão qualitativa NÃO capturada nas asserções de eval-2: baseline usou storageClassName: standard em vez de managed-csi — falha crítica para AKS",
+    "Skill é 35s mais rápida e usa ~6k tokens a menos que o baseline em média",
+    "Baseline adicionou arquivos extras não esperados (dashboard JSON, install.sh, namespace.yaml separado) — inconsistência de output",
+    "Sugestão: adicionar asserção de storage class ao eval-2 para capturar a regressão AKS na próxima iteração"
+  ]
+}

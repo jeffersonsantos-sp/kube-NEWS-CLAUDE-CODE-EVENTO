@@ -1,0 +1,17 @@
+{
+  "eval_id": 1,
+  "eval_name": "app-node-aks-email",
+  "prompt": "Quero adicionar observabilidade completa ao meu projeto. Tenho uma app Node.js com PostgreSQL rodando no AKS. Preciso de métricas, logs e alertas por email para jefferson@empresa.com",
+  "assertions": [
+    {"text": "values-kube-prometheus-stack.yaml gerado", "passed": null, "evidence": ""},
+    {"text": "kubeScheduler desabilitado para AKS", "passed": null, "evidence": ""},
+    {"text": "kubeControllerManager desabilitado para AKS", "passed": null, "evidence": ""},
+    {"text": "kubeEtcd desabilitado para AKS", "passed": null, "evidence": ""},
+    {"text": "storage class managed-csi para AKS", "passed": null, "evidence": ""},
+    {"text": "email jefferson@empresa.com no AlertManager", "passed": null, "evidence": ""},
+    {"text": "values-loki-stack.yaml gerado", "passed": null, "evidence": ""},
+    {"text": "postgres-exporter.yaml gerado", "passed": null, "evidence": ""},
+    {"text": "prometheus-rules.yaml gerado", "passed": null, "evidence": ""},
+    {"text": "OBSERVABILITY.md gerado", "passed": null, "evidence": ""}
+  ]
+}
