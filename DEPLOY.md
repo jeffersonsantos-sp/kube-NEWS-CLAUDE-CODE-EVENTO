@@ -125,6 +125,53 @@ Opcionalmente adicione **Required reviewers** para exigir aprovação manual ant
 
 ---
 
+## Build local vs build pelo pipeline
+
+São dois fluxos com propósitos distintos.
+
+### Build local — para desenvolvimento e testes
+
+Usa `docker compose` ou `docker build` direto. **Não chega ao AKS.**
+
+```bash
+# Testar a aplicação localmente
+docker compose up --build
+
+# Validar a imagem antes de criar a tag
+docker build -t updateinformatica/claude-devops:v1.2.3 .
+docker run -p 8080:8080 updateinformatica/claude-devops:v1.2.3
+```
+
+### Build via GitHub Actions — para produção
+
+É o único fluxo que atualiza o AKS. Após validar localmente, crie a tag:
+
+```bash
+git add .
+git commit -m "sua mudança"
+git push
+
+git tag v1.2.3
+git push --tags   # dispara CI → CD automaticamente
+```
+
+### Por que não fazer docker push manual para produção
+
+Se você fizer `docker push` manualmente sem criar uma tag git, **nada dispara o CD** — a imagem existe no Docker Hub mas o AKS não é atualizado e o manifesto `kube-news-green.yaml` fica desatualizado no repositório.
+
+### Resumo
+
+| Situação | Fluxo |
+|---|---|
+| Testar mudança localmente | `docker compose up --build` |
+| Validar imagem antes de tagear | `docker build` + `docker run` local |
+| Deployar em produção no AKS | `git tag vX.Y.Z && git push --tags` |
+| Emergência com CI/CD quebrado | `docker build` + `docker push` + `kubectl apply` manual — documente o incidente |
+
+**Regra:** tudo que vai para produção passa pela tag. Build local é só para validar antes de criá-la.
+
+---
+
 ## O que NÃO fazer
 
 | Acao | Risco |
