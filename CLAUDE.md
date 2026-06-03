@@ -26,17 +26,14 @@ docker push updateinformatica/claude-devops:TAG         # push to registry
 ### Kubernetes
 
 ```bash
-# Deploy (full stack — creates namespace, secrets, configmap, PVC, postgres, blue app, service)
+# Bootstrap (one-time) — registers the ArgoCD Application; after this ArgoCD manages everything
+kubectl apply -f argocd/argocd-app.yaml
+
+# Manual deploy (bypasses GitOps — use only for emergency/local testing)
 kubectl apply -f k8s/kube-news-blue.yaml
 
-# Blue → Green promotion: update image tag in k8s/kube-news-green.yaml, then:
-kubectl apply -f k8s/kube-news-green.yaml
-
-# Switch traffic to green (edit selector version: blue → green in kube-news-blue.yaml)
-kubectl apply -f k8s/kube-news-blue.yaml
-
-# Rollback (revert selector back to blue)
-kubectl apply -f k8s/kube-news-blue.yaml
+# Rollback via GitOps: edit k8s/kube-news-blue.yaml selector version: green → blue, then:
+git add k8s/kube-news-blue.yaml && git commit -m "rollback: switch traffic to blue" && git push
 ```
 
 ### Helm (observability stack)
@@ -85,6 +82,7 @@ Prometheus metrics are exposed at `GET /metrics` via `express-prom-bundle`, whic
 | `k8s/cert-issuer.yaml` | ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` (HTTP-01 challenge, ingressClassName: nginx) |
 | `k8s/monitoring/` | Helm values + ServiceMonitors + PrometheusRules for the observability stack |
 | `k8s-bo/` | Legacy flat manifests (no Blue-Green) — not the active deployment |
+| `argocd/argocd-app.yaml` | ArgoCD Application manifest — applied once to bootstrap GitOps |
 
 The Blue-Green switch is entirely controlled by the `version:` label selector on the `kube-news` Service in `kube-news-blue.yaml`. No other changes are required to promote green to production.
 
@@ -93,6 +91,30 @@ Traffic entry point is the NGINX Ingress Controller LoadBalancer (IP `20.53.187.
 ### Secrets and config
 
 In Kubernetes, credentials live in `kube-news-secret` (Secret) and non-sensitive config in `kube-news-config` (ConfigMap), both defined in `kube-news-blue.yaml`. The postgres-exporter in `k8s/monitoring/postgres-exporter.yaml` reuses these same objects via `valueFrom`.
+
+### ArgoCD (GitOps)
+
+The cluster is managed via GitOps — ArgoCD watches `k8s/` on branch `main` and syncs automatically on every commit. **Never run `kubectl apply` on `k8s/` files directly in production; commit the change and let ArgoCD apply it.**
+
+| Item | Value |
+|---|---|
+| UI | `http://20.213.174.138` |
+| Application | `kube-news` (namespace `argocd`) |
+| Watched path | `k8s/` (non-recursive — `k8s/monitoring/` is excluded) |
+| Auto-sync | enabled — prune + selfHeal |
+| Bootstrap manifest | `argocd/argocd-app.yaml` |
+| Full documentation | `ARGOCD.md` |
+
+#### CI/CD flow
+
+```
+git tag v1.2.3 && git push --tags
+  → CI: npm ci → docker build → docker push updateinformatica/claude-devops:v1.2.3
+  → CD: updates k8s/kube-news-green.yaml (image) + k8s/kube-news-blue.yaml (selector → green) → git push
+  → ArgoCD: detects commit (~3 min) → applies manifests to cluster
+```
+
+GitHub Actions secrets required: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`. `KUBECONFIG` is no longer needed.
 
 ### Observability
 
