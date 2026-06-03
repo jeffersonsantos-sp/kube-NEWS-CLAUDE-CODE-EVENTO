@@ -197,7 +197,7 @@ metadata:
   name: kube-news
   namespace: kube-news
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: kube-news
     version: blue
