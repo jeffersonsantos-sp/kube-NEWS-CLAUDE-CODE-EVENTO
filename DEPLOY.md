@@ -196,6 +196,33 @@ git tag v1.0.1
 git push --tags
 ```
 
+### `dial tcp [::1]:8080: connect: connection refused` no CD
+
+**Causa:** O secret `KUBECONFIG` não está configurado ou foi gerado incorretamente. Quando está ausente ou vazio, o `kubectl` ignora o arquivo de configuração e tenta conectar no default local (`localhost:8080`) em vez do AKS.
+
+**Solução:** Gere o kubeconfig correto na sua máquina e configure o secret:
+
+```bash
+# 1. Garante que está no contexto do AKS
+kubectl config use-context AKSCLAUDECODE
+
+# 2. Gera o base64 sem quebras de linha
+cat ~/.kube/config | base64 -w 0
+```
+
+Cole o resultado em **Settings → Secrets and variables → Actions → `KUBECONFIG`** (crie se não existir, atualize se já existir com valor errado).
+
+O CD agora valida o secret e testa a conectividade com `kubectl cluster-info` antes de tentar qualquer deploy, falhando com mensagem clara nos dois casos.
+
+Após configurar, re-execute criando uma nova tag:
+
+```bash
+git tag v1.0.2
+git push --tags
+```
+
+---
+
 ### Warning — Node.js 20 actions deprecated
 
 **Causa:** As actions do GitHub (`actions/checkout`, `actions/setup-node`, `docker/login-action`) usavam Node.js 20, que será removido dos runners em setembro/2026.
