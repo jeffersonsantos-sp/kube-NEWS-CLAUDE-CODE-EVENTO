@@ -2,6 +2,8 @@
 
 Este documento descreve o processo oficial de build, deploy e rollback da aplicação **kube-news** no Azure AKS. Leia antes de qualquer alteração em produção.
 
+> **Status do pipeline:** funcionando em produção desde 2026-06-02. CI + CD validados end-to-end — build, push Docker Hub, atualização de manifesto, deploy green no AKS e troca de tráfego.
+
 ---
 
 ## Visão geral
