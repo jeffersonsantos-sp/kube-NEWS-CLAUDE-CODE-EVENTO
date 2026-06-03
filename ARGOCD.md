@@ -205,6 +205,31 @@ kubectl get application kube-news -n argocd
 
 ---
 
+## Skill argocd-gitops
+
+Para diagnóstico assistido por IA, use a skill `argocd-gitops` do Claude Code. Ela executa as três fases automaticamente (discovery → análise → documentação) e gera dois arquivos em `argocd/incidents/YYYY-MM-DD-HHMM/` sem executar nenhuma ação no cluster.
+
+**Quando usar:** ArgoCD OutOfSync, Application Degraded, deploy não chegou ao cluster, rollback necessário, pipeline CI/CD aparentemente quebrada, ou simplesmente para checar o estado atual.
+
+```
+# Exemplos de prompts que ativam a skill:
+"Qual o estado atual do ArgoCD?"
+"O deploy não apareceu no cluster depois do git tag"
+"Preciso fazer rollback para a versão anterior"
+"ArgoCD não está sincronizando"
+```
+
+**Outputs gerados:**
+
+| Arquivo | Conteúdo |
+|---|---|
+| `ARGOCD_STATUS.md` | Status de sync/health, tabela Blue-Green, recursos gerenciados, pods do ArgoCD, diagnóstico com causa raiz |
+| `ARGOCD_ACTION_PLAN.md` | Passos de remediação com comandos exatos, classificação de risco e checklist de validação |
+
+> A skill orienta rollback via **git commit** (GitOps correto), não via `kubectl patch` — que seria revertido pelo `selfHeal` em ~3 minutos.
+
+---
+
 ## Verificação e troubleshooting
 
 ### Verificar status da Application
