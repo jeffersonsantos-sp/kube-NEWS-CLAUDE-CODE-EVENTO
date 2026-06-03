@@ -200,7 +200,7 @@ spec:
   type: ClusterIP
   selector:
     app: kube-news
-    version: blue
+    version: green
   ports:
     - port: 80
       targetPort: 8080
