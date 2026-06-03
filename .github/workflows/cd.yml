@@ -35,11 +35,23 @@ jobs:
 
       - uses: azure/setup-kubectl@v4
 
+      - name: Verify kubeconfig secret
+        run: |
+          if [ -z "${{ secrets.KUBECONFIG }}" ]; then
+            echo "::error::Secret KUBECONFIG nao configurado."
+            echo "::error::Execute na sua maquina: cat ~/.kube/config | base64 -w 0"
+            echo "::error::Cole o resultado em Settings → Secrets and variables → Actions → KUBECONFIG"
+            exit 1
+          fi
+
       - name: Configure kubeconfig
         run: |
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
+
+      - name: Verify cluster connectivity
+        run: kubectl cluster-info
 
       - name: Update green manifest
         run: |
