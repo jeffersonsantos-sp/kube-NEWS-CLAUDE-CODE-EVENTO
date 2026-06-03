@@ -1,0 +1,45 @@
+{
+  "skill_name": "argocd-gitops",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Qual o estado atual do meu ArgoCD? Quero saber se o deploy está funcionando e qual versão está rodando no cluster.",
+      "expected_output": "Gera ARGOCD_STATUS.md com tabela de estado Blue-Green, status de sync/health da Application kube-news, recursos gerenciados e diagnóstico. Gera ARGOCD_ACTION_PLAN.md com passos de remediação se houver problema. Não executa nenhuma ação.",
+      "files": [],
+      "assertions": [
+        "cria ARGOCD_STATUS.md em argocd/incidents/",
+        "cria ARGOCD_ACTION_PLAN.md em argocd/incidents/",
+        "tabela Blue-Green presente com selector e imagens",
+        "menciona Application kube-news",
+        "severidade classificada (OK/BAIXA/MÉDIA/CRÍTICA)",
+        "sem ações destrutivas executadas"
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Fiz um git tag v2.0.0 e o push mas a nova imagem não apareceu no cluster ainda. O ArgoCD não parece estar sincronizando.",
+      "expected_output": "Diagnóstica o estado de sync da Application, compara revision do git com o que o ArgoCD sincronizou, verifica se o CD commitat a tag, e gera ACTION_PLAN com passos para forçar o sync. Não executa nenhuma ação.",
+      "files": [],
+      "assertions": [
+        "cria ARGOCD_STATUS.md",
+        "compara revision git vs ArgoCD (SHA do último commit vs último sync)",
+        "ACTION_PLAN tem comando de force sync (kubectl patch ou instrução UI)",
+        "seção Pipeline CI/CD com análise dos últimos commits",
+        "sem ações destrutivas executadas"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Algo deu errado no último deploy, preciso fazer rollback para a versão anterior do kube-news.",
+      "expected_output": "Diagnóstica o slot atual ativo, verifica as imagens em execução, e gera ACTION_PLAN com o procedimento de rollback via GitOps: editar selector em kube-news-blue.yaml, git commit e push. Não executa o rollback.",
+      "files": [],
+      "assertions": [
+        "cria ARGOCD_ACTION_PLAN.md",
+        "ACTION_PLAN tem rollback via git commit (não kubectl patch direto)",
+        "menciona k8s/kube-news-blue.yaml para editar o selector",
+        "identifica slot ativo atual (blue ou green)",
+        "sem ações destrutivas executadas"
+      ]
+    }
+  ]
+}
