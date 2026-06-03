@@ -6,6 +6,12 @@
       "sourceType": "github",
       "skillPath": "skills/skill-creator/SKILL.md",
       "computedHash": "5ea13a6d9f0d4bb694405d79acd00cadec0d21bb138c4dd10fcf3c500cb835c2"
+    },
+    "argocd-gitops": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".claude/skills/argocd-gitops/SKILL.md",
+      "computedHash": "e7c96ca869709d76cd6995afd99293a5ddaeb49b22f89d63e960bd26995ebfc4"
     }
   }
 }
