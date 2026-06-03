@@ -172,6 +172,43 @@ Se você fizer `docker push` manualmente sem criar uma tag git, **nada dispara o
 
 ---
 
+## Erros conhecidos e soluções
+
+### `context deadline exceeded` ao conectar no Docker Hub
+
+**Causa:** Os secrets `DOCKERHUB_USERNAME` ou `DOCKERHUB_TOKEN` não estão configurados no repositório. O login falha silenciosamente e o push tenta autenticar anonimamente até dar timeout.
+
+**Solução:** Configure os secrets em **Settings → Secrets and variables → Actions**:
+
+| Secret | Como obter |
+|---|---|
+| `DOCKERHUB_USERNAME` | Usuário no Docker Hub (`updateinformatica`) |
+| `DOCKERHUB_TOKEN` | hub.docker.com → Account Settings → Security → New Access Token |
+
+O CI valida a presença dos secrets antes do login e falha com mensagem clara se estiverem ausentes.
+
+Após configurar, re-execute criando uma nova tag:
+
+```bash
+git tag v1.0.1
+git push --tags
+```
+
+### Warning — Node.js 20 actions deprecated
+
+**Causa:** As actions do GitHub (`actions/checkout`, `actions/setup-node`, `docker/login-action`) usavam Node.js 20, que será removido dos runners em setembro/2026.
+
+**Solução:** Já corrigido nos workflows com a variável de ambiente:
+
+```yaml
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+```
+
+Presente em `ci.yml` e `cd.yml`. Nenhuma ação manual necessária.
+
+---
+
 ## O que NÃO fazer
 
 | Acao | Risco |
