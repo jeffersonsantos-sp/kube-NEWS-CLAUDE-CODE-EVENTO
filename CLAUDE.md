@@ -120,6 +120,7 @@ Use these skills for recurring tasks rather than implementing from scratch:
 | `gerador-docker` | Audit `Dockerfile` and `docker-compose.yml` against project rules |
 | `generator-observability` | Generate and install the full Prometheus+Grafana+Loki stack |
 | `k8s-incident` | Diagnose cluster incidents — produces `INCIDENT_RCA.md` and `ACTION_PLAN.md` |
+| `setup-https` | Configure HTTPS on AKS: NGINX Ingress + cert-manager + Let's Encrypt — includes Azure LB probe fix, staging→prod cert sequence, and Blue-Green compatibility |
 
 ## Image naming
 
