@@ -33,49 +33,18 @@ jobs:
       - name: Read image tag
         run: echo "IMAGE_TAG=$(cat image-tag.txt)" >> $GITHUB_ENV
 
-      - uses: azure/setup-kubectl@v4
-
-      - name: Verify kubeconfig secret
-        run: |
-          if [ -z "${{ secrets.KUBECONFIG }}" ]; then
-            echo "::error::Secret KUBECONFIG nao configurado."
-            echo "::error::Execute na sua maquina: cat ~/.kube/config | base64 -w 0"
-            echo "::error::Cole o resultado em Settings → Secrets and variables → Actions → KUBECONFIG"
-            exit 1
-          fi
-
-      - name: Configure kubeconfig
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-
-      - name: Verify cluster connectivity
-        run: kubectl cluster-info
-
-      - name: Update green manifest
+      - name: Update green deployment image
         run: |
           sed -i "s|image: updateinformatica/claude-devops:.*|image: updateinformatica/claude-devops:${IMAGE_TAG}|" k8s/kube-news-green.yaml
 
-      - name: Commit updated manifest
+      - name: Ensure traffic routes to green
+        run: |
+          sed -i 's/^    version: blue$/    version: green/' k8s/kube-news-blue.yaml
+
+      - name: Commit updated manifests
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add k8s/kube-news-green.yaml
-          git commit -m "ci: deploy green image ${IMAGE_TAG}"
+          git add k8s/kube-news-green.yaml k8s/kube-news-blue.yaml
+          git diff --staged --quiet || git commit -m "ci: deploy green image ${IMAGE_TAG}"
           git push
-
-      - name: Deploy green
-        run: kubectl apply -f k8s/kube-news-green.yaml
-
-      - name: Wait for green rollout
-        run: kubectl rollout status deployment/kube-news-green -n kube-news --timeout=300s
-
-      - name: Switch traffic to green
-        run: |
-          kubectl patch service kube-news -n kube-news \
-            -p '{"spec":{"selector":{"app":"kube-news","version":"green"}}}'
-
-      - name: Confirm active slot
-        run: |
-          echo "Active: $(kubectl get service kube-news -n kube-news -o jsonpath='{.spec.selector.version}')"
