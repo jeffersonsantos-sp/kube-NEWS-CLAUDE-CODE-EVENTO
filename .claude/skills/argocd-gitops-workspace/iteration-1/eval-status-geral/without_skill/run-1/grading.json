@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "cria ARGOCD_STATUS.md",
+      "passed": false,
+      "evidence": "Arquivo criado como 'argocd-status-report.md', não 'ARGOCD_STATUS.md'"
+    },
+    {
+      "text": "cria ARGOCD_ACTION_PLAN.md",
+      "passed": false,
+      "evidence": "Nenhum ACTION_PLAN criado"
+    },
+    {
+      "text": "tabela Blue-Green presente",
+      "passed": true,
+      "evidence": "Seção com tabela de deployments e imagens mostrando green ativo"
+    },
+    {
+      "text": "menciona Application kube-news",
+      "passed": true,
+      "evidence": "Seção '## ArgoCD Application: kube-news' presente"
+    },
+    {
+      "text": "severidade classificada",
+      "passed": false,
+      "evidence": "Sem campo de severidade estruturado"
+    },
+    {
+      "text": "sem ações destrutivas",
+      "passed": true,
+      "evidence": "Apenas leitura do cluster"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 3,
+    "total": 6,
+    "pass_rate": 0.5
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "eval_id": 2,
+  "eval_name": "rollback",
+  "prompt": "Algo deu errado no último deploy, preciso fazer rollback para a versão anterior do kube-news.",
+  "assertions": [
+    {"name": "cria ARGOCD_ACTION_PLAN.md", "description": "O arquivo ARGOCD_ACTION_PLAN.md foi criado"},
+    {"name": "ACTION_PLAN tem procedimento de rollback via git", "description": "ARGOCD_ACTION_PLAN.md contém git commit e git push para reverter o selector"},
+    {"name": "menciona kube-news-blue.yaml", "description": "O plano de ação menciona o arquivo k8s/kube-news-blue.yaml para editar o selector"},
+    {"name": "identifica slot ativo atual", "description": "ARGOCD_STATUS.md ou ACTION_PLAN informa qual slot está ativo no momento (blue ou green)"},
+    {"name": "sem ações destrutivas", "description": "A skill não executou kubectl apply, git push, nem nenhuma alteração real"}
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "cria ARGOCD_STATUS.md",
+      "passed": true,
+      "evidence": "Arquivo ARGOCD_STATUS.md criado com diagnóstico dos 3 achados"
+    },
+    {
+      "text": "compara revision git vs ArgoCD",
+      "passed": true,
+      "evidence": "STATUS.md mostra HEAD git 5a1af2b e explica cluster inacessível; achados analisam tag v2.0.0 ausente"
+    },
+    {
+      "text": "ACTION_PLAN tem comando de force sync",
+      "passed": true,
+      "evidence": "Passo 5: 'Se ArgoCD OutOfSync: forçar sync' com kubectl patch"
+    },
+    {
+      "text": "diagnóstica pipeline CI/CD",
+      "passed": true,
+      "evidence": "Seção Pipeline CI/CD com análise de commits; achados 2 e 3 explicam tag não existente e CI não disparado"
+    },
+    {
+      "text": "sem ações destrutivas",
+      "passed": true,
+      "evidence": "Cluster inacessível, skill operou só via leitura de arquivos git"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}

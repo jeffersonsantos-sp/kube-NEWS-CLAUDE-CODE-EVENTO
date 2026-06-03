@@ -1,0 +1,12 @@
+{
+  "eval_id": 1,
+  "eval_name": "sync-atrasado",
+  "prompt": "Fiz um git tag v2.0.0 e o push mas a nova imagem não apareceu no cluster ainda. O ArgoCD não parece estar sincronizando.",
+  "assertions": [
+    {"name": "cria ARGOCD_STATUS.md", "description": "O arquivo ARGOCD_STATUS.md foi criado"},
+    {"name": "compara revision git vs ArgoCD", "description": "ARGOCD_STATUS.md menciona o SHA do último commit e o revision que o ArgoCD sincronizou"},
+    {"name": "ACTION_PLAN tem comando de force sync", "description": "ARGOCD_ACTION_PLAN.md contém o comando kubectl patch ou instrução para usar a UI para forçar sync"},
+    {"name": "diagnóstica pipeline CI/CD", "description": "ARGOCD_STATUS.md tem seção 'Pipeline CI/CD' com análise dos últimos commits"},
+    {"name": "sem ações destrutivas", "description": "A skill não executou kubectl apply, kubectl patch, kubectl delete, nem git push"}
+  ]
+}

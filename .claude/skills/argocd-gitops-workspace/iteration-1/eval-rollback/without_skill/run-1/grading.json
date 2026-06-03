@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "cria ARGOCD_ACTION_PLAN.md",
+      "passed": false,
+      "evidence": "Arquivo criado como 'ROLLBACK_PLAN.md'"
+    },
+    {
+      "text": "ACTION_PLAN tem procedimento de rollback via git",
+      "passed": false,
+      "evidence": "Recomendou 'kubectl patch service' direto — não GitOps; seria revertido pelo selfHeal em ~3 min"
+    },
+    {
+      "text": "menciona kube-news-blue.yaml",
+      "passed": false,
+      "evidence": "Não menciona editar kube-news-blue.yaml; foca em kubectl patch"
+    },
+    {
+      "text": "identifica slot ativo atual",
+      "passed": true,
+      "evidence": "ROLLBACK_PLAN: kube-news-blue ativo com v1.2.6"
+    },
+    {
+      "text": "sem ações destrutivas",
+      "passed": true,
+      "evidence": "Cluster inacessível, apenas leitura de manifests"
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 3,
+    "total": 5,
+    "pass_rate": 0.4
+  }
+}

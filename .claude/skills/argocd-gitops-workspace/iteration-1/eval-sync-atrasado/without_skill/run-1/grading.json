@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "cria ARGOCD_STATUS.md",
+      "passed": false,
+      "evidence": "Arquivo criado como 'diagnostico.md'"
+    },
+    {
+      "text": "compara revision git vs ArgoCD",
+      "passed": true,
+      "evidence": "Menciona ae0267c5 e explica que ArgoCD rastreia branch main, não tags"
+    },
+    {
+      "text": "ACTION_PLAN tem comando de force sync",
+      "passed": false,
+      "evidence": "Sem arquivo ARGOCD_ACTION_PLAN.md; diagnóstico inline sem plano estruturado"
+    },
+    {
+      "text": "diagnóstica pipeline CI/CD",
+      "passed": true,
+      "evidence": "Excelente diagnóstico: tag não altera manifests, portanto ArgoCD não tem nada a sincronizar"
+    },
+    {
+      "text": "sem ações destrutivas",
+      "passed": true,
+      "evidence": "Nenhuma ação executada"
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "total": 5,
+    "pass_rate": 0.6
+  }
+}

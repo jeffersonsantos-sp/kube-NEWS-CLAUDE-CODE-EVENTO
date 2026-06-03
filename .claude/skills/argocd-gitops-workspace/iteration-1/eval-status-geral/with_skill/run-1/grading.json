@@ -1,0 +1,40 @@
+{
+  "expectations": [
+    {
+      "text": "cria ARGOCD_STATUS.md",
+      "passed": true,
+      "evidence": "Arquivo ARGOCD_STATUS.md criado com estrutura completa"
+    },
+    {
+      "text": "cria ARGOCD_ACTION_PLAN.md",
+      "passed": true,
+      "evidence": "Arquivo ARGOCD_ACTION_PLAN.md criado"
+    },
+    {
+      "text": "tabela Blue-Green presente",
+      "passed": true,
+      "evidence": "Seção '## Estado Blue-Green' com tabela mostrando selector, imagens e status"
+    },
+    {
+      "text": "menciona Application kube-news",
+      "passed": true,
+      "evidence": "Campo '| Application | kube-news |' na tabela de cabeçalho"
+    },
+    {
+      "text": "severidade classificada",
+      "passed": true,
+      "evidence": "Campo '| Severidade | MÉDIA |' presente"
+    },
+    {
+      "text": "sem ações destrutivas",
+      "passed": true,
+      "evidence": "Nenhum kubectl apply/patch/delete/git push executado"
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  }
+}

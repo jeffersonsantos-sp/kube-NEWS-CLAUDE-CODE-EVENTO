@@ -1,0 +1,13 @@
+{
+  "eval_id": 0,
+  "eval_name": "status-geral",
+  "prompt": "Qual o estado atual do meu ArgoCD? Quero saber se o deploy está funcionando e qual versão está rodando no cluster.",
+  "assertions": [
+    {"name": "cria ARGOCD_STATUS.md", "description": "O arquivo ARGOCD_STATUS.md foi criado em argocd/incidents/"},
+    {"name": "cria ARGOCD_ACTION_PLAN.md", "description": "O arquivo ARGOCD_ACTION_PLAN.md foi criado em argocd/incidents/"},
+    {"name": "tabela Blue-Green presente", "description": "ARGOCD_STATUS.md contém a tabela 'Estado Blue-Green' com selector e imagens"},
+    {"name": "menciona Application kube-news", "description": "ARGOCD_STATUS.md referencia a Application 'kube-news' no namespace argocd"},
+    {"name": "severidade classificada", "description": "ARGOCD_STATUS.md tem campo Severidade preenchido (OK, BAIXA, MÉDIA ou CRÍTICA)"},
+    {"name": "sem ações destrutivas", "description": "A skill não executou kubectl apply, kubectl patch, kubectl delete, nem git push"}
+  ]
+}

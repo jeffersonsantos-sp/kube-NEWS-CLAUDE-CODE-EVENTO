@@ -1,0 +1,35 @@
+{
+  "expectations": [
+    {
+      "text": "cria ARGOCD_ACTION_PLAN.md",
+      "passed": true,
+      "evidence": "ARGOCD_ACTION_PLAN.md criado com 5 passos incluindo edição de kube-news-blue.yaml"
+    },
+    {
+      "text": "ACTION_PLAN tem procedimento de rollback via git",
+      "passed": true,
+      "evidence": "Passo 3: editar k8s/kube-news-blue.yaml selector blue→green, commitar e fazer push — ArgoCD aplica em ~3 min"
+    },
+    {
+      "text": "menciona kube-news-blue.yaml",
+      "passed": true,
+      "evidence": "ACTION_PLAN referencia explicitamente 'k8s/kube-news-blue.yaml'"
+    },
+    {
+      "text": "identifica slot ativo atual",
+      "passed": true,
+      "evidence": "STATUS.md: slot blue ativo com v1.2.6; green standby com v1.2.5"
+    },
+    {
+      "text": "sem ações destrutivas",
+      "passed": true,
+      "evidence": "Cluster inacessível; skill operou apenas via leitura de manifests"
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  }
+}
