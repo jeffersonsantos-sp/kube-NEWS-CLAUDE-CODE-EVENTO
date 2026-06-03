@@ -144,6 +144,7 @@ Use these skills for recurring tasks rather than implementing from scratch:
 | `k8s-incident` | Diagnose cluster incidents — produces `INCIDENT_RCA.md` and `ACTION_PLAN.md` |
 | `setup-https` | Configure HTTPS on AKS: NGINX Ingress + cert-manager + Let's Encrypt — includes Azure LB probe fix, staging→prod cert sequence, and Blue-Green compatibility |
 | `argocd-gitops` | Diagnose ArgoCD Application state and GitOps pipeline issues — detects sync failures, health degradations, git/cluster drift, Blue-Green problems and CI/CD breaks; generates `ARGOCD_STATUS.md` + `ARGOCD_ACTION_PLAN.md` in `argocd/incidents/` |
+| `blue-green` | Execute Blue-Green deployment operations via GitOps: traffic switch (blue↔green), rollback, manual green deploy with a specific image tag, and blue baseline update — all via git commit + push, ArgoCD applies automatically |
 
 ## Image naming
 

@@ -12,6 +12,12 @@
       "sourceType": "local",
       "skillPath": ".claude/skills/argocd-gitops/SKILL.md",
       "computedHash": "e7c96ca869709d76cd6995afd99293a5ddaeb49b22f89d63e960bd26995ebfc4"
+    },
+    "blue-green": {
+      "source": "local",
+      "sourceType": "local",
+      "skillPath": ".claude/skills/blue-green/SKILL.md",
+      "computedHash": "25a25abafdac2de1b7b30425e17a8a0f54514e10bb5ae0d256fb2c796a5ed7dd"
     }
   }
 }
