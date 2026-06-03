@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: kube-news
-          image: updateinformatica/claude-devops:v1.2.4
+          image: updateinformatica/claude-devops:v1.0.2
           env:
             - name: DB_HOST
               valueFrom:
