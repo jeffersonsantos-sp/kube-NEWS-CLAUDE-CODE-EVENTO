@@ -52,6 +52,17 @@ O projeto Kube-News é uma aplicação web simples desenvolvida em Node.js, proj
 - Docker (opcional, para containerização)
 - Kubernetes (opcional, para orquestração)
 
+## Acesso em Produção
+
+| Protocolo | URL |
+|-----------|-----|
+| HTTPS | https://jfs-devops.shop |
+| HTTP  | http://jfs-devops.shop  |
+
+O tráfego é roteado pelo **NGINX Ingress Controller** no AKS. O certificado TLS é emitido pela **Let's Encrypt** via cert-manager e renovado automaticamente a cada 90 dias.
+
+---
+
 ### Variáveis de Ambiente
 
 Para configurar a aplicação, defina as seguintes variáveis de ambiente:

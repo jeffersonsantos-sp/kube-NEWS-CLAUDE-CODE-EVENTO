@@ -51,6 +51,19 @@ helm upgrade loki-stack grafana/loki-stack \
   --namespace monitoring --values k8s/monitoring/values-loki-stack.yaml
 ```
 
+### Helm (ingress + TLS)
+
+```bash
+helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
+  --namespace ingress-nginx \
+  --set controller.service.type=LoadBalancer \
+  --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-protocol"=tcp
+
+helm upgrade cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --set crds.enabled=true
+```
+
 ## Architecture
 
 ### Application (`src/`)
@@ -66,12 +79,16 @@ Prometheus metrics are exposed at `GET /metrics` via `express-prom-bundle`, whic
 
 | Directory | Purpose |
 |---|---|
-| `k8s/kube-news-blue.yaml` | **Active manifests**: Namespace, Secret, ConfigMap, PVC, postgres Deployment+Service, blue app Deployment, LoadBalancer Service |
+| `k8s/kube-news-blue.yaml` | **Active manifests**: Namespace, Secret, ConfigMap, PVC, postgres Deployment+Service, blue app Deployment, **ClusterIP** Service |
 | `k8s/kube-news-green.yaml` | Green Deployment + preview ClusterIP Service (port 8080) |
+| `k8s/ingress.yaml` | NGINX Ingress for `jfs-devops.shop` — HTTP + HTTPS (TLS via `letsencrypt-prod`), `ssl-redirect: false` |
+| `k8s/cert-issuer.yaml` | ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` (HTTP-01 challenge, ingressClassName: nginx) |
 | `k8s/monitoring/` | Helm values + ServiceMonitors + PrometheusRules for the observability stack |
 | `k8s-bo/` | Legacy flat manifests (no Blue-Green) — not the active deployment |
 
 The Blue-Green switch is entirely controlled by the `version:` label selector on the `kube-news` Service in `kube-news-blue.yaml`. No other changes are required to promote green to production.
+
+Traffic entry point is the NGINX Ingress Controller LoadBalancer (IP `20.53.187.114`). DNS `jfs-devops.shop` points to this IP. The `kube-news` Service is ClusterIP — no direct external IP.
 
 ### Secrets and config
 

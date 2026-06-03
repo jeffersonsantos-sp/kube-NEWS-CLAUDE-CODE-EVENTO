@@ -254,9 +254,12 @@ Presente em `ci.yml` e `cd.yml`. Nenhuma ação manual necessária.
 ```
 k8s/
   kube-news-blue.yaml    # Stack completa: namespace, secret, configmap, PVC,
-                         # postgres, deployment blue, Service (LoadBalancer)
+                         # postgres, deployment blue, Service (ClusterIP)
   kube-news-green.yaml   # Deployment green + Service preview (ClusterIP :8080)
                          # — tag da imagem atualizada automaticamente pelo CD
+  ingress.yaml           # Ingress NGINX: roteia HTTP/HTTPS para o Service kube-news
+                         # TLS via cert-manager (letsencrypt-prod), ssl-redirect desativado
+  cert-issuer.yaml       # ClusterIssuers letsencrypt-staging e letsencrypt-prod
 
 .github/
   workflows/
@@ -294,4 +297,31 @@ Desenvolvedor
               ▼
          Produção servindo a nova versão
          Blue mantido em standby para rollback
+
+## Camada de rede (HTTP + HTTPS)
+
 ```
+Internet
+    │
+    ▼
+NGINX Ingress Controller  (LoadBalancer — IP: 20.53.187.114)
+    │  porta 80  ──────────────────────────────────────────▶ http://jfs-devops.shop
+    │  porta 443 (TLS — cert Let's Encrypt, auto-renovável) ▶ https://jfs-devops.shop
+    │
+    ▼
+Service kube-news (ClusterIP)
+    │  selector version: blue | green  (Blue-Green switch)
+    ▼
+Pods kube-news (porta 8080)
+```
+
+O tráfego entra pelo Ingress, que termina TLS e repassa ao Service interno. O mecanismo Blue-Green (selector no Service) continua funcionando normalmente — o Ingress não precisa saber qual slot está ativo.
+
+### Helm releases da camada de rede
+
+| Release | Namespace | Comando para atualizar |
+|---|---|---|
+| `ingress-nginx` | `ingress-nginx` | `helm upgrade ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx` |
+| `cert-manager` | `cert-manager` | `helm upgrade cert-manager jetstack/cert-manager --namespace cert-manager --set crds.enabled=true` |
+
+Certificado TLS armazenado no Secret `kube-news-tls` no namespace `kube-news`. cert-manager renova automaticamente ~30 dias antes do vencimento (validade: 90 dias).
