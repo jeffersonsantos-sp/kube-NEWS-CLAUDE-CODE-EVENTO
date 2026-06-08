@@ -1,0 +1,11 @@
+# Copy this file to terraform.tfvars and fill in your values
+# cp terraform.tfvars.example terraform.tfvars
+
+project_id         = "YOUR_GCP_PROJECT_ID"
+region             = "us-central1"
+zone               = "us-central1-a"
+cluster_name       = "kube-news-gke"
+node_count         = 2
+machine_type       = "e2-medium"
+disk_size_gb       = 30
+kubernetes_version = "latest"

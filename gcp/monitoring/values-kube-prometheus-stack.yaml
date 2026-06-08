@@ -1,0 +1,108 @@
+# GCP GKE: componentes do control plane são gerenciados — não acessíveis para scrape
+kubeScheduler:
+  enabled: false
+kubeControllerManager:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+defaultRules:
+  rules:
+    kubeSchedulerAlerting: false
+    kubeSchedulerRecording: false
+    kubeControllerManager: false
+    etcd: false
+    kubeProxy: false
+
+# Prometheus — descobre ServiceMonitors em todos os namespaces
+prometheus:
+  prometheusSpec:
+    retention: 30d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorSelector: {}
+    serviceMonitorNamespaceSelector: {}
+    podMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelector: {}
+    podMonitorNamespaceSelector: {}
+    ruleNamespaceSelector: {}
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 2Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          # GCP: standard-rwo = pd-standard | premium-rwo = pd-ssd
+          storageClassName: standard-rwo
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+# Grafana — LoadBalancer + Loki como datasource adicional
+grafana:
+  adminPassword: "KubeNews@Monitoring2026"
+  service:
+    type: LoadBalancer
+    # GCP não requer annotations especiais para LoadBalancer padrão
+  persistence:
+    enabled: true
+    storageClassName: standard-rwo
+    size: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      url: http://loki-stack.monitoring.svc.cluster.local:3100
+      access: proxy
+      isDefault: false
+
+# AlertManager — Gmail SMTP
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+  config:
+    global:
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'updateinformatica2019@gmail.com'
+      smtp_auth_username: 'updateinformatica2019@gmail.com'
+      smtp_auth_password: 'REPLACE_WITH_GMAIL_APP_PASSWORD'
+      smtp_require_tls: true
+    route:
+      group_by: ['alertname', 'namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      receiver: 'email-notifications'
+    receivers:
+      - name: 'null'
+      - name: 'email-notifications'
+        email_configs:
+          - to: 'updateinformatica2019@gmail.com'
+            send_resolved: true
+    inhibit_rules:
+      - source_matchers:
+          - 'severity="critical"'
+        target_matchers:
+          - 'severity="warning"'
+        equal:
+          - alertname
+          - namespace

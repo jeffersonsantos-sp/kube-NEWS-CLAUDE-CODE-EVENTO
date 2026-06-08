@@ -4,7 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-kube-news is a Node.js news portal used as a Kubernetes/containers learning environment. It runs on **Azure AKS** (context `AKSCLAUDECODE`) with a Blue-Green deployment strategy.
+kube-news is a Node.js news portal used as a Kubernetes/containers learning environment. It runs on **Azure AKS** (context `AKSCLAUDECODE`) with a Blue-Green deployment strategy, and is being migrated in parallel to **GCP GKE** (us-central1).
+
+**Multi-cloud layout:**
+- `k8s/` + `argocd/argocd-app.yaml` → Azure AKS (active)
+- `gcp/k8s/` + `gcp/argocd/argocd-app.yaml` → GCP GKE (new)
+- `gcp/terraform/` → GKE cluster provisioning via Terraform
+- Full GCP documentation: `GCP.md`
 
 ## Commands
 
@@ -36,16 +42,40 @@ kubectl apply -f k8s/kube-news-blue.yaml
 git add k8s/kube-news-blue.yaml && git commit -m "rollback: switch traffic to blue" && git push
 ```
 
+### GCP / GKE (new)
+
+```bash
+# Provision GKE cluster
+cd gcp/terraform && cp terraform.tfvars.example terraform.tfvars  # fill project_id
+terraform init && terraform apply
+terraform output -raw get_credentials_command | bash   # configure kubectl
+
+# Bootstrap ArgoCD Application on GKE
+kubectl apply -f gcp/argocd/argocd-app.yaml
+
+# Switch kubectl contexts
+kubectl config use-context AKSCLAUDECODE                                   # Azure
+kubectl config use-context gke_<PROJECT_ID>_us-central1_kube-news-gke     # GCP
+```
+
 ### Helm (observability stack)
 
 Helm binary lives at `~/bin/helm` — run `export PATH="$HOME/bin:$PATH"` before helm commands.
 
 ```bash
+# Azure AKS
 helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   --namespace monitoring --values k8s/monitoring/values-kube-prometheus-stack.yaml
 
 helm upgrade loki-stack grafana/loki-stack \
   --namespace monitoring --values k8s/monitoring/values-loki-stack.yaml
+
+# GCP GKE
+helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --values gcp/monitoring/values-kube-prometheus-stack.yaml
+
+helm upgrade loki-stack grafana/loki-stack \
+  --namespace monitoring --values gcp/monitoring/values-loki-stack.yaml
 ```
 
 ### Helm (ingress + TLS)

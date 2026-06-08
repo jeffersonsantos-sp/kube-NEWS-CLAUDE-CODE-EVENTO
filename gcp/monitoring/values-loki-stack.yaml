@@ -1,0 +1,28 @@
+# Loki — armazenamento persistente de logs
+loki:
+  persistence:
+    enabled: true
+    # GCP: standard-rwo = pd-standard | premium-rwo = pd-ssd
+    storageClassName: standard-rwo
+    size: 10Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 300m
+      memory: 512Mi
+
+# Promtail — coleta logs de todos os containers via DaemonSet
+promtail:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Grafana já instalado via kube-prometheus-stack
+grafana:
+  enabled: false
