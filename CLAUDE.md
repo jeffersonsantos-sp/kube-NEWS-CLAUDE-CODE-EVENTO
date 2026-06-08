@@ -4,13 +4,33 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-kube-news is a Node.js news portal used as a Kubernetes/containers learning environment. It runs on **Azure AKS** (context `AKSCLAUDECODE`) with a Blue-Green deployment strategy, and is being migrated in parallel to **GCP GKE** (us-central1).
+kube-news is a Node.js news portal used as a Kubernetes/containers learning environment. Multi-cloud deployment with Blue-Green strategy.
 
 **Multi-cloud layout:**
-- `k8s/` + `argocd/argocd-app.yaml` → Azure AKS (active)
-- `gcp/k8s/` + `gcp/argocd/argocd-app.yaml` → GCP GKE (new)
-- `gcp/terraform/` → GKE cluster provisioning via Terraform
-- Full GCP documentation: `GCP.md`
+
+```
+clouds/
+├── azure/        ← Azure AKS (active production)
+│   ├── terraform/    AKS provisioning (azurerm provider)
+│   ├── k8s/          Active manifests — watched by ArgoCD
+│   ├── k8s-legacy/   Old flat manifests (no Blue-Green) — not active
+│   ├── argocd/       ArgoCD Application bootstrap
+│   ├── incidents/    Incident RCAs and action plans
+│   ├── ARGOCD.md
+│   ├── OBSERVABILITY.md
+│   └── PROPOSTA-AZURE-AKS.md
+├── gcp/          ← GCP GKE (parallel, in progress)
+│   ├── terraform/    GKE provisioning (google provider, us-central1, e2-medium)
+│   ├── k8s/          GKE manifests — watched by ArgoCD GCP
+│   ├── argocd/       ArgoCD Application for GKE
+│   ├── monitoring/   Helm values (storageClass: standard-rwo)
+│   └── GCP.md
+└── aws/          ← AWS EKS (placeholder — not yet implemented)
+    ├── terraform/
+    ├── k8s/
+    ├── argocd/
+    └── README.md
+```
 
 ## Commands
 
@@ -29,29 +49,29 @@ docker build -t updateinformatica/claude-devops:TAG .   # build image
 docker push updateinformatica/claude-devops:TAG         # push to registry
 ```
 
-### Kubernetes
+### Kubernetes — Azure AKS
 
 ```bash
 # Bootstrap (one-time) — registers the ArgoCD Application; after this ArgoCD manages everything
-kubectl apply -f argocd/argocd-app.yaml
+kubectl apply -f clouds/azure/argocd/argocd-app.yaml
 
-# Manual deploy (bypasses GitOps — use only for emergency/local testing)
-kubectl apply -f k8s/kube-news-blue.yaml
+# Manual deploy (bypasses GitOps — emergency/local testing only)
+kubectl apply -f clouds/azure/k8s/kube-news-blue.yaml
 
-# Rollback via GitOps: edit k8s/kube-news-blue.yaml selector version: green → blue, then:
-git add k8s/kube-news-blue.yaml && git commit -m "rollback: switch traffic to blue" && git push
+# Rollback via GitOps: edit selector version: green → blue, then:
+git add clouds/azure/k8s/kube-news-blue.yaml && git commit -m "rollback: switch traffic to blue" && git push
 ```
 
-### GCP / GKE (new)
+### Kubernetes — GCP GKE
 
 ```bash
 # Provision GKE cluster
-cd gcp/terraform && cp terraform.tfvars.example terraform.tfvars  # fill project_id
+cd clouds/gcp/terraform && cp terraform.tfvars.example terraform.tfvars  # fill project_id
 terraform init && terraform apply
 terraform output -raw get_credentials_command | bash   # configure kubectl
 
 # Bootstrap ArgoCD Application on GKE
-kubectl apply -f gcp/argocd/argocd-app.yaml
+kubectl apply -f clouds/gcp/argocd/argocd-app.yaml
 
 # Switch kubectl contexts
 kubectl config use-context AKSCLAUDECODE                                   # Azure
@@ -65,20 +85,20 @@ Helm binary lives at `~/bin/helm` — run `export PATH="$HOME/bin:$PATH"` before
 ```bash
 # Azure AKS
 helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace monitoring --values k8s/monitoring/values-kube-prometheus-stack.yaml
+  --namespace monitoring --values clouds/azure/k8s/monitoring/values-kube-prometheus-stack.yaml
 
 helm upgrade loki-stack grafana/loki-stack \
-  --namespace monitoring --values k8s/monitoring/values-loki-stack.yaml
+  --namespace monitoring --values clouds/azure/k8s/monitoring/values-loki-stack.yaml
 
 # GCP GKE
 helm upgrade kube-prometheus-stack prometheus-community/kube-prometheus-stack \
-  --namespace monitoring --values gcp/monitoring/values-kube-prometheus-stack.yaml
+  --namespace monitoring --values clouds/gcp/monitoring/values-kube-prometheus-stack.yaml
 
 helm upgrade loki-stack grafana/loki-stack \
-  --namespace monitoring --values gcp/monitoring/values-loki-stack.yaml
+  --namespace monitoring --values clouds/gcp/monitoring/values-loki-stack.yaml
 ```
 
-### Helm (ingress + TLS)
+### Helm (ingress + TLS) — Azure AKS
 
 ```bash
 helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
@@ -105,15 +125,28 @@ Prometheus metrics are exposed at `GET /metrics` via `express-prom-bundle`, whic
 
 ### Kubernetes layout
 
-| Directory | Purpose |
+#### Azure AKS (`clouds/azure/`)
+
+| File | Purpose |
 |---|---|
-| `k8s/kube-news-blue.yaml` | **Active manifests**: Namespace, Secret, ConfigMap, PVC, postgres Deployment+Service, blue app Deployment, **ClusterIP** Service |
-| `k8s/kube-news-green.yaml` | Green Deployment + preview ClusterIP Service (port 8080) |
-| `k8s/ingress.yaml` | NGINX Ingress for `jfs-devops.shop` — HTTP + HTTPS (TLS via `letsencrypt-prod`), `ssl-redirect: false` |
-| `k8s/cert-issuer.yaml` | ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` (HTTP-01 challenge, ingressClassName: nginx) |
-| `k8s/monitoring/` | Helm values + ServiceMonitors + PrometheusRules for the observability stack |
-| `k8s-bo/` | Legacy flat manifests (no Blue-Green) — not the active deployment |
-| `argocd/argocd-app.yaml` | ArgoCD Application manifest — applied once to bootstrap GitOps |
+| `clouds/azure/k8s/kube-news-blue.yaml` | **Active manifests**: Namespace, Secret, ConfigMap, PVC, postgres Deployment+Service, blue app Deployment, **ClusterIP** Service |
+| `clouds/azure/k8s/kube-news-green.yaml` | Green Deployment + preview ClusterIP Service (port 8080) |
+| `clouds/azure/k8s/ingress.yaml` | NGINX Ingress for `jfs-devops.shop` — HTTP + HTTPS (TLS via `letsencrypt-prod`), `ssl-redirect: false` |
+| `clouds/azure/k8s/cert-issuer.yaml` | ClusterIssuers `letsencrypt-staging` and `letsencrypt-prod` |
+| `clouds/azure/k8s/monitoring/` | Helm values + ServiceMonitors + PrometheusRules for the observability stack |
+| `clouds/azure/k8s-legacy/` | Legacy flat manifests (no Blue-Green) — not the active deployment |
+| `clouds/azure/argocd/argocd-app.yaml` | ArgoCD Application manifest — applied once to bootstrap GitOps |
+| `clouds/azure/terraform/` | AKS cluster provisioning (azurerm provider, modules: aks + networking) |
+
+#### GCP GKE (`clouds/gcp/`)
+
+| File | Purpose |
+|---|---|
+| `clouds/gcp/k8s/kube-news-blue.yaml` | Same Blue-Green manifests, storageClass: `standard-rwo` |
+| `clouds/gcp/k8s/kube-news-green.yaml` | Green Deployment for GKE |
+| `clouds/gcp/argocd/argocd-app.yaml` | ArgoCD Application `kube-news-gcp` — watches `clouds/gcp/k8s/` |
+| `clouds/gcp/terraform/` | GKE cluster provisioning (google provider, us-central1, e2-medium) |
+| `clouds/gcp/monitoring/` | Helm values (storageClass: `standard-rwo`) |
 
 The Blue-Green switch is entirely controlled by the `version:` label selector on the `kube-news` Service in `kube-news-blue.yaml`. No other changes are required to promote green to production.
 
@@ -121,27 +154,26 @@ Traffic entry point is the NGINX Ingress Controller LoadBalancer (IP `20.53.187.
 
 ### Secrets and config
 
-In Kubernetes, credentials live in `kube-news-secret` (Secret) and non-sensitive config in `kube-news-config` (ConfigMap), both defined in `kube-news-blue.yaml`. The postgres-exporter in `k8s/monitoring/postgres-exporter.yaml` reuses these same objects via `valueFrom`.
+In Kubernetes, credentials live in `kube-news-secret` (Secret) and non-sensitive config in `kube-news-config` (ConfigMap), both defined in `kube-news-blue.yaml`. The postgres-exporter in `clouds/azure/k8s/monitoring/postgres-exporter.yaml` reuses these same objects via `valueFrom`.
 
 ### ArgoCD (GitOps)
 
-The cluster is managed via GitOps — ArgoCD watches `k8s/` on branch `main` and syncs automatically on every commit. **Never run `kubectl apply` on `k8s/` files directly in production; commit the change and let ArgoCD apply it.**
+| Item | Azure AKS | GCP GKE |
+|---|---|---|
+| UI | `http://20.213.174.138` | install after `terraform apply` |
+| Application name | `kube-news` | `kube-news-gcp` |
+| Watched path | `clouds/azure/k8s/` | `clouds/gcp/k8s/` |
+| Bootstrap manifest | `clouds/azure/argocd/argocd-app.yaml` | `clouds/gcp/argocd/argocd-app.yaml` |
+| Auto-sync | enabled — prune + selfHeal | enabled — prune + selfHeal |
+| Full documentation | `clouds/azure/ARGOCD.md` | `clouds/gcp/GCP.md` |
 
-| Item | Value |
-|---|---|
-| UI | `http://20.213.174.138` |
-| Application | `kube-news` (namespace `argocd`) |
-| Watched path | `k8s/` (non-recursive — `k8s/monitoring/` is excluded) |
-| Auto-sync | enabled — prune + selfHeal |
-| Bootstrap manifest | `argocd/argocd-app.yaml` |
-| Full documentation | `ARGOCD.md` |
-
-#### CI/CD flow
+#### CI/CD flow (Azure — active pipeline)
 
 ```
 git tag v1.2.3 && git push --tags
   → CI: npm ci → docker build → docker push updateinformatica/claude-devops:v1.2.3
-  → CD: updates k8s/kube-news-green.yaml (image) + k8s/kube-news-blue.yaml (selector → green) → git push
+  → CD: updates clouds/azure/k8s/kube-news-green.yaml (image)
+        + clouds/azure/k8s/kube-news-blue.yaml (selector → green) → git push
   → ArgoCD: detects commit (~3 min) → applies manifests to cluster
 ```
 
@@ -151,9 +183,9 @@ GitHub Actions secrets required: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`. `KUBEC
 
 - **Prometheus + Grafana + AlertManager**: installed via `kube-prometheus-stack` Helm chart in `monitoring` namespace
 - **Loki + Promtail**: installed via `loki-stack` Helm chart; Grafana datasource URL is `http://loki-stack.monitoring.svc.cluster.local:3100`
-- **Grafana**: LoadBalancer at `http://20.249.165.203` — credentials in `k8s/monitoring/values-kube-prometheus-stack.yaml`
-- **App metrics scraping**: `k8s/monitoring/kube-news-metrics-service.yaml` creates a dedicated ClusterIP Service (port 8080, selector `app: kube-news`) that the ServiceMonitor targets — this covers both blue and green pods simultaneously
-- Full documentation: `OBSERVABILITY.md`
+- **Grafana**: LoadBalancer at `http://20.249.165.203` — credentials in `clouds/azure/k8s/monitoring/values-kube-prometheus-stack.yaml`
+- **App metrics scraping**: `clouds/azure/k8s/monitoring/kube-news-metrics-service.yaml` creates a dedicated ClusterIP Service (port 8080, selector `app: kube-news`) that the ServiceMonitor targets — this covers both blue and green pods simultaneously
+- Full documentation: `clouds/azure/OBSERVABILITY.md`
 
 ### MCP servers (`.mcp.json`)
 
@@ -172,14 +204,14 @@ Use these skills for recurring tasks rather than implementing from scratch:
 | `gerador-kubernetes` | Generate Blue-Green K8s manifests from `docker-compose.yml` |
 | `gerador-docker` | Audit `Dockerfile` and `docker-compose.yml` against project rules |
 | `generator-observability` | Generate and install the full Prometheus+Grafana+Loki stack |
-| `k8s-incident` | Diagnose cluster incidents — produces `INCIDENT_RCA.md` and `ACTION_PLAN.md` |
+| `k8s-incident` | Diagnose cluster incidents — produces `INCIDENT_RCA.md` and `ACTION_PLAN.md` in `clouds/azure/incidents/` |
 | `setup-https` | Configure HTTPS on AKS: NGINX Ingress + cert-manager + Let's Encrypt — includes Azure LB probe fix, staging→prod cert sequence, and Blue-Green compatibility |
-| `argocd-gitops` | Diagnose ArgoCD Application state and GitOps pipeline issues — detects sync failures, health degradations, git/cluster drift, Blue-Green problems and CI/CD breaks; generates `ARGOCD_STATUS.md` + `ARGOCD_ACTION_PLAN.md` in `argocd/incidents/` |
+| `argocd-gitops` | Diagnose ArgoCD Application state and GitOps pipeline issues — generates `ARGOCD_STATUS.md` + `ARGOCD_ACTION_PLAN.md` in `clouds/azure/argocd/incidents/` |
 | `blue-green` | Execute Blue-Green deployment operations via GitOps: traffic switch (blue↔green), rollback, manual green deploy with a specific image tag, and blue baseline update — all via git commit + push, ArgoCD applies automatically |
 
 ## Image naming
 
-The Docker image is `updateinformatica/claude-devops`. The tag in `docker-compose.yml` may differ from the tag pinned in the K8s manifests — always update `k8s/kube-news-green.yaml` with the new tag before a Blue-Green promotion.
+The Docker image is `updateinformatica/claude-devops`. The tag in `docker-compose.yml` may differ from the tag pinned in the K8s manifests — always update `clouds/azure/k8s/kube-news-green.yaml` (or `clouds/gcp/k8s/kube-news-green.yaml` for GCP) with the new tag before a Blue-Green promotion.
 
 ## Chaos endpoints
 

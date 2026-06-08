@@ -1,6 +1,6 @@
 ---
 name: k8s-incident
-description: Diagnoses Kubernetes cluster problems autonomously. Detects infrastructure drift (namespace, image, missing resources) and pod health issues (CrashLoopBackOff, OOMKilled, Pending, ImagePullBackOff). Generates INCIDENT_RCA.md and ACTION_PLAN.md in incidents/YYYY-MM-DD-HHMM/ without executing any changes. Use when the user reports something is wrong in the cluster, when pods are unhealthy, or when the cluster state doesn't match what's expected.
+description: Diagnoses Kubernetes cluster problems autonomously. Detects infrastructure drift (namespace, image, missing resources) and pod health issues (CrashLoopBackOff, OOMKilled, Pending, ImagePullBackOff). Generates INCIDENT_RCA.md and ACTION_PLAN.md in clouds/azure/incidents/YYYY-MM-DD-HHMM/ without executing any changes. Use when the user reports something is wrong in the cluster, when pods are unhealthy, or when the cluster state doesn't match what's expected.
 ---
 
 # Skill: k8s-incident
@@ -25,13 +25,13 @@ Execute todas as coletas em paralelo sempre que possível.
 - Use `mcp__kubernetes__kubectl_context` com `operation: get` para identificar cluster, usuário e namespace ativo.
 
 ### 1.2 Estado esperado (fonte da verdade)
-- Verifique se existe o diretório `k8s/` na raiz do projeto.
-- Se existir, leia todos os arquivos `.yaml` / `.yml` dentro de `k8s/` e extraia:
+- Verifique se existe o diretório `clouds/azure/k8s/` na raiz do projeto.
+- Se existir, leia todos os arquivos `.yaml` / `.yml` dentro de `clouds/azure/k8s/` e extraia:
   - Namespaces declarados
   - Nomes de Deployments, Services, ConfigMaps, Secrets, PVCs
   - Imagens de container (campo `image:`)
   - Labels de seletores em Services e Deployments
-- Se `k8s/` não existir, registre a ausência no RCA e prossiga com heurísticas.
+- Se `clouds/azure/k8s/` não existir, registre a ausência no RCA e prossiga com heurísticas.
 
 ### 1.3 Estado atual do cluster
 - `mcp__kubernetes__kubectl_get` com `resourceType: namespaces` → lista todos os namespaces.
@@ -50,14 +50,14 @@ Para cada pod cujo STATUS não seja `Running` ou `Completed`, execute em paralel
 ## Fase 2 — Análise
 
 ### 2.1 Análise de Infraestrutura (repo vs cluster)
-Compare o estado extraído de `k8s/` com o estado atual do cluster. Identifique:
+Compare o estado extraído de `clouds/azure/k8s/` com o estado atual do cluster. Identifique:
 
 | Problema | Como detectar |
 |---|---|
 | Namespace errado | Recursos com `namespace: X` no manifest mas encontrados em namespace diferente no cluster |
 | Imagem divergente | Campo `image:` no manifest diferente do `image:` no deployment ativo |
-| Recurso ausente | Definido em `k8s/` mas inexistente no cluster |
-| Recurso órfão | Existe no cluster mas não tem correspondente em `k8s/` (exceto recursos nativos do k8s) |
+| Recurso ausente | Definido em `clouds/azure/k8s/` mas inexistente no cluster |
+| Recurso órfão | Existe no cluster mas não tem correspondente em `clouds/azure/k8s/` (exceto recursos nativos do k8s) |
 | Selector sem match | Service com selector que não corresponde a nenhum label de pod em execução |
 | ConfigMap/Secret ausente | Referenciado em env `valueFrom` mas não existe no namespace |
 
@@ -100,7 +100,7 @@ Para cada pod com problema, classifique e identifique a causa:
 
 ## Fase 3 — Documentação
 
-Crie a pasta `incidents/YYYY-MM-DD-HHMM/` na raiz do projeto (use a data/hora atual).
+Crie a pasta `clouds/azure/incidents/YYYY-MM-DD-HHMM/` na raiz do projeto (use a data/hora atual).
 Gere os dois arquivos abaixo.
 
 ---
@@ -175,7 +175,7 @@ Gere os dois arquivos abaixo.
 **Risco:** Baixo — [justificativa]
 **Comando:**
 ```bash
-kubectl apply -f k8s/kube-news-blue.yaml -n kube-news
+kubectl apply -f clouds/azure/k8s/kube-news-blue.yaml -n kube-news
 ```
 **Resultado esperado:** ...
 
@@ -203,10 +203,10 @@ Após execução de todos os passos, verificar:
 
 ---
 
-## Comportamento quando `k8s/` não existe
+## Comportamento quando `clouds/azure/k8s/` não existe
 
-Se o diretório `k8s/` não for encontrado na raiz do projeto:
-1. Registre no RCA: "Fonte de verdade ausente — diretório `k8s/` não encontrado. Análise baseada apenas em heurísticas do cluster."
+Se o diretório `clouds/azure/k8s/` não for encontrado na raiz do projeto:
+1. Registre no RCA: "Fonte de verdade ausente — diretório `clouds/azure/k8s/` não encontrado. Análise baseada apenas em heurísticas do cluster."
 2. Prossiga com toda a coleta de dados do cluster.
 3. Na análise de infraestrutura, foque em: namespaces com recursos órfãos, pods em falha, services sem endpoints, PVCs não vinculados.
 4. No ACTION_PLAN, marque todos os passos com `[REQUER VALIDAÇÃO MANUAL]` além da classificação de risco.
@@ -221,8 +221,8 @@ Após gerar os dois documentos, exiba ao usuário:
 Diagnóstico concluído. Nenhuma alteração foi feita no cluster.
 
 Documentos gerados:
-  incidents/YYYY-MM-DD-HHMM/INCIDENT_RCA.md
-  incidents/YYYY-MM-DD-HHMM/ACTION_PLAN.md
+  clouds/azure/incidents/YYYY-MM-DD-HHMM/INCIDENT_RCA.md
+  clouds/azure/incidents/YYYY-MM-DD-HHMM/ACTION_PLAN.md
 
 Achados resumidos:
   [lista bullet com cada achado e severidade]

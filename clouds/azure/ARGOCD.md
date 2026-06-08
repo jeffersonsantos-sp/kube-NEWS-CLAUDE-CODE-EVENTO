@@ -42,7 +42,7 @@ kubectl get secret argocd-initial-admin-secret -n argocd \
 
 ## Application do ArgoCD
 
-Arquivo: `argocd/argocd-app.yaml`
+Arquivo: `clouds/azure/argocd/argocd-app.yaml`
 
 ```yaml
 apiVersion: argoproj.io/v1alpha1
@@ -57,7 +57,7 @@ spec:
   source:
     repoURL: https://github.com/jeffersonsantos-sp/kube-NEWS-CLAUDE-CODE-EVENTO.git
     targetRevision: main
-    path: k8s
+    path: clouds/azure/k8s
   destination:
     server: https://kubernetes.default.svc
     namespace: kube-news
@@ -74,7 +74,7 @@ spec:
 | Campo | Valor | Efeito |
 |---|---|---|
 | `targetRevision` | `main` | Monitora o branch main |
-| `path` | `k8s` | Observa apenas os arquivos diretamente em `k8s/` (não recursivo) |
+| `path` | `k8s` | Observa apenas os arquivos diretamente em `clouds/azure/k8s/` (não recursivo) |
 | `automated.prune` | `true` | Remove do cluster recursos deletados do git |
 | `automated.selfHeal` | `true` | Reverte mudanças manuais feitas via kubectl |
 | `CreateNamespace` | `true` | Cria o namespace `kube-news` se não existir |
@@ -86,7 +86,7 @@ spec:
 
 ## Recursos gerenciados
 
-O ArgoCD gerencia todos os arquivos YAML diretamente em `k8s/`:
+O ArgoCD gerencia todos os arquivos YAML diretamente em `clouds/azure/k8s/`:
 
 | Arquivo | Recursos |
 |---|---|
@@ -117,13 +117,13 @@ O ArgoCD gerencia todos os arquivos YAML diretamente em `k8s/`:
 **Passos:**
 1. Checkout do repositório
 2. Download do artefato com a image tag gerada pelo CI
-3. Atualiza a imagem em `k8s/kube-news-green.yaml`:
+3. Atualiza a imagem em `clouds/azure/k8s/kube-news-green.yaml`:
    ```bash
-   sed -i "s|image: updateinformatica/claude-devops:.*|image: updateinformatica/claude-devops:${IMAGE_TAG}|" k8s/kube-news-green.yaml
+   sed -i "s|image: updateinformatica/claude-devops:.*|image: updateinformatica/claude-devops:${IMAGE_TAG}|" clouds/azure/k8s/kube-news-green.yaml
    ```
-4. Garante que o selector do Service aponta para `green` em `k8s/kube-news-blue.yaml`:
+4. Garante que o selector do Service aponta para `green` em `clouds/azure/k8s/kube-news-blue.yaml`:
    ```bash
-   sed -i 's/^    version: blue$/    version: green/' k8s/kube-news-blue.yaml
+   sed -i 's/^    version: blue$/    version: green/' clouds/azure/k8s/kube-news-blue.yaml
    ```
 5. Commita e faz push das alterações
 
@@ -146,7 +146,7 @@ Acesse: `Settings → Secrets and variables → Actions`
 
 ## Estratégia Blue-Green com GitOps
 
-O Blue-Green é controlado inteiramente pelo selector `version:` no Service `kube-news` dentro de `k8s/kube-news-blue.yaml`.
+O Blue-Green é controlado inteiramente pelo selector `version:` no Service `kube-news` dentro de `clouds/azure/k8s/kube-news-blue.yaml`.
 
 ```
                    ┌─────────────────────┐
@@ -180,8 +180,8 @@ git push origin v1.2.3
 ### Rollback para blue
 
 ```bash
-# Editar k8s/kube-news-blue.yaml: selector version: green → version: blue
-git add k8s/kube-news-blue.yaml
+# Editar clouds/azure/k8s/kube-news-blue.yaml: selector version: green → version: blue
+git add clouds/azure/k8s/kube-news-blue.yaml
 git commit -m "rollback: switch traffic to blue"
 git push
 # ArgoCD aplica em ~3 min
@@ -191,10 +191,10 @@ git push
 
 ## Bootstrap — Aplicar a Application do ArgoCD
 
-O arquivo `argocd/argocd-app.yaml` é aplicado **uma única vez** para registrar a aplicação no ArgoCD. Após isso, o próprio ArgoCD gerencia tudo.
+O arquivo `clouds/azure/argocd/argocd-app.yaml` é aplicado **uma única vez** para registrar a aplicação no ArgoCD. Após isso, o próprio ArgoCD gerencia tudo.
 
 ```bash
-kubectl apply -f argocd/argocd-app.yaml
+kubectl apply -f clouds/azure/argocd/argocd-app.yaml
 ```
 
 Para verificar o status:
@@ -207,7 +207,7 @@ kubectl get application kube-news -n argocd
 
 ## Skill argocd-gitops
 
-Para diagnóstico assistido por IA, use a skill `argocd-gitops` do Claude Code. Ela executa as três fases automaticamente (discovery → análise → documentação) e gera dois arquivos em `argocd/incidents/YYYY-MM-DD-HHMM/` sem executar nenhuma ação no cluster.
+Para diagnóstico assistido por IA, use a skill `argocd-gitops` do Claude Code. Ela executa as três fases automaticamente (discovery → análise → documentação) e gera dois arquivos em `clouds/azure/argocd/incidents/YYYY-MM-DD-HHMM/` sem executar nenhuma ação no cluster.
 
 **Quando usar:** ArgoCD OutOfSync, Application Degraded, deploy não chegou ao cluster, rollback necessário, pipeline CI/CD aparentemente quebrada, ou simplesmente para checar o estado atual.
 

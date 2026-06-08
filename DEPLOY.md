@@ -242,7 +242,7 @@ Presente em `ci.yml` e `cd.yml`. Nenhuma ação manual necessária.
 
 | Acao | Risco |
 |---|---|
-| `kubectl apply -f k8s/kube-news-green.yaml` manualmente | Substitui o manifesto sem passar pelo pipeline — histórico perdido |
+| `kubectl apply -f clouds/azure/k8s/kube-news-green.yaml` manualmente | Substitui o manifesto sem passar pelo pipeline — histórico perdido |
 | `kubectl set image` direto no cluster | Drift entre cluster e repositório git — ArgoCD não conseguirá reconciliar no futuro |
 | Push de tag sem testar localmente | CI vai buildar e CD vai deployar automaticamente — não há gate de aprovação no CI |
 | Editar `kube-news-green.yaml` manualmente sem nova tag | O manifesto diverge da imagem rodando no cluster |
@@ -288,7 +288,7 @@ Desenvolvedor
          Baixa tag do artefato CI
          Atualiza imagem em kube-news-green.yaml
          git commit + push (manifesto versionado)
-         kubectl apply -f k8s/kube-news-green.yaml
+         kubectl apply -f clouds/azure/k8s/kube-news-green.yaml
          kubectl rollout status (aguarda pods Ready)
               │
               ▼ (todos os pods green Ready)

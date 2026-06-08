@@ -13,8 +13,8 @@ Você é o operador de deploys Blue-Green do projeto kube-news. Todas as operaç
 
 Antes de qualquer operação, leia o estado atual em paralelo:
 
-- `k8s/kube-news-blue.yaml` — extraia o selector `version:` do Service `kube-news` (4 espaços de indentação, na seção `spec.selector`). Esse valor (`blue` ou `green`) determina qual slot está recebendo tráfego.
-- `k8s/kube-news-green.yaml` — extraia a imagem do deployment green (`image:` field).
+- `clouds/azure/k8s/kube-news-blue.yaml` — extraia o selector `version:` do Service `kube-news` (4 espaços de indentação, na seção `spec.selector`). Esse valor (`blue` ou `green`) determina qual slot está recebendo tráfego.
+- `clouds/azure/k8s/kube-news-green.yaml` — extraia a imagem do deployment green (`image:` field).
 - Execute `git log --oneline -5` — veja os últimos commits para entender o histórico de deploys.
 - (Opcional, se o cluster estiver acessível) `mcp__kubernetes__kubectl_get` com `resourceType: deployments`, `namespace: kube-news`, `output: wide` — confirme as imagens rodando no cluster.
 
@@ -52,7 +52,7 @@ Se a intenção não estiver clara, pergunte ao usuário qual operação deseja 
 
 Redireciona o tráfego de green para blue. Use quando o deploy em green apresentar problemas.
 
-**O que faz:** altera o selector do Service `kube-news` de `version: green` para `version: blue` em `k8s/kube-news-blue.yaml`.
+**O que faz:** altera o selector do Service `kube-news` de `version: green` para `version: blue` em `clouds/azure/k8s/kube-news-blue.yaml`.
 
 **Antes de executar:** confirme que o deployment blue tem pods Running (via cluster ou manifests).
 
@@ -60,16 +60,16 @@ Redireciona o tráfego de green para blue. Use quando o deploy em green apresent
 
 ```bash
 # 1. Verifica que o selector atual é green (rollback faz sentido)
-grep "^    version:" k8s/kube-news-blue.yaml
+grep "^    version:" clouds/azure/k8s/kube-news-blue.yaml
 
 # 2. Altera apenas o selector do Service (4 espaços — não altera labels do Deployment com 6 espaços)
-sed -i 's/^    version: green$/    version: blue/' k8s/kube-news-blue.yaml
+sed -i 's/^    version: green$/    version: blue/' clouds/azure/k8s/kube-news-blue.yaml
 
 # 3. Confirma a mudança antes de commitar
-grep "^    version:" k8s/kube-news-blue.yaml
+grep "^    version:" clouds/azure/k8s/kube-news-blue.yaml
 
 # 4. Commita e faz push
-git add k8s/kube-news-blue.yaml
+git add clouds/azure/k8s/kube-news-blue.yaml
 git commit -m "rollback: switch traffic to blue"
 git push origin main
 ```
@@ -82,13 +82,13 @@ git push origin main
 
 Redireciona o tráfego de blue para green. Use após verificar que o green está saudável.
 
-**O que faz:** altera o selector do Service `kube-news` de `version: blue` para `version: green` em `k8s/kube-news-blue.yaml`.
+**O que faz:** altera o selector do Service `kube-news` de `version: blue` para `version: green` em `clouds/azure/k8s/kube-news-blue.yaml`.
 
 **Implementação:**
 
 ```bash
-sed -i 's/^    version: blue$/    version: green/' k8s/kube-news-blue.yaml
-git add k8s/kube-news-blue.yaml
+sed -i 's/^    version: blue$/    version: green/' clouds/azure/k8s/kube-news-blue.yaml
+git add clouds/azure/k8s/kube-news-blue.yaml
 git commit -m "deploy: switch traffic to green"
 git push origin main
 ```
@@ -102,24 +102,24 @@ git push origin main
 Atualiza a imagem do deployment green e direciona o tráfego para ele. Use quando quiser deploiar uma tag específica sem passar pelo pipeline CI/CD.
 
 **O que faz:**
-1. Atualiza `image:` em `k8s/kube-news-green.yaml` com a nova tag
-2. Atualiza o selector do Service para `version: green` em `k8s/kube-news-blue.yaml`
+1. Atualiza `image:` em `clouds/azure/k8s/kube-news-green.yaml` com a nova tag
+2. Atualiza o selector do Service para `version: green` em `clouds/azure/k8s/kube-news-blue.yaml`
 
 **Implementação** (substitua `NEW_TAG` pela tag desejada):
 
 ```bash
 # 1. Atualiza a imagem no deployment green
-sed -i "s|image: updateinformatica/claude-devops:.*|image: updateinformatica/claude-devops:NEW_TAG|" k8s/kube-news-green.yaml
+sed -i "s|image: updateinformatica/claude-devops:.*|image: updateinformatica/claude-devops:NEW_TAG|" clouds/azure/k8s/kube-news-green.yaml
 
 # 2. Garante que o selector aponta para green
-sed -i 's/^    version: blue$/    version: green/' k8s/kube-news-blue.yaml
+sed -i 's/^    version: blue$/    version: green/' clouds/azure/k8s/kube-news-blue.yaml
 
 # 3. Confirma as mudanças
-grep "image:" k8s/kube-news-green.yaml
-grep "^    version:" k8s/kube-news-blue.yaml
+grep "image:" clouds/azure/k8s/kube-news-green.yaml
+grep "^    version:" clouds/azure/k8s/kube-news-blue.yaml
 
 # 4. Commita e faz push
-git add k8s/kube-news-green.yaml k8s/kube-news-blue.yaml
+git add clouds/azure/k8s/kube-news-green.yaml clouds/azure/k8s/kube-news-blue.yaml
 git commit -m "deploy: green image NEW_TAG"
 git push origin main
 ```
@@ -132,22 +132,22 @@ git push origin main
 
 Atualiza a imagem do deployment blue para igualar a do green. Use após confirmar que o green está estável e querer definir um novo ponto de rollback.
 
-**O que faz:** copia a tag da imagem de `k8s/kube-news-green.yaml` para `k8s/kube-news-blue.yaml`. O selector do Service não é alterado.
+**O que faz:** copia a tag da imagem de `clouds/azure/k8s/kube-news-green.yaml` para `clouds/azure/k8s/kube-news-blue.yaml`. O selector do Service não é alterado.
 
 **Implementação:**
 
 ```bash
 # 1. Extrai a tag atual do green
-GREEN_TAG=$(grep "image: updateinformatica/claude-devops:" k8s/kube-news-green.yaml | sed 's/.*://')
+GREEN_TAG=$(grep "image: updateinformatica/claude-devops:" clouds/azure/k8s/kube-news-green.yaml | sed 's/.*://')
 
 # 2. Atualiza a imagem do blue com a mesma tag
-sed -i "s|image: updateinformatica/claude-devops:.*|image: updateinformatica/claude-devops:${GREEN_TAG}|" k8s/kube-news-blue.yaml
+sed -i "s|image: updateinformatica/claude-devops:.*|image: updateinformatica/claude-devops:${GREEN_TAG}|" clouds/azure/k8s/kube-news-blue.yaml
 
 # 3. Confirma
-grep "image: updateinformatica/claude-devops:" k8s/kube-news-blue.yaml
+grep "image: updateinformatica/claude-devops:" clouds/azure/k8s/kube-news-blue.yaml
 
 # 4. Commita e faz push
-git add k8s/kube-news-blue.yaml
+git add clouds/azure/k8s/kube-news-blue.yaml
 git commit -m "chore: update blue baseline to ${GREEN_TAG}"
 git push origin main
 ```
@@ -183,8 +183,8 @@ Estado após a operação:
 
 | Arquivo | O que controla |
 |---|---|
-| `k8s/kube-news-blue.yaml` (selector `version:` com 4 espaços) | Qual slot recebe tráfego de produção |
-| `k8s/kube-news-green.yaml` (campo `image:`) | Imagem rodando no slot green |
-| `k8s/kube-news-blue.yaml` (campo `image:` no Deployment blue) | Imagem rodando no slot blue (baseline de rollback) |
+| `clouds/azure/k8s/kube-news-blue.yaml` (selector `version:` com 4 espaços) | Qual slot recebe tráfego de produção |
+| `clouds/azure/k8s/kube-news-green.yaml` (campo `image:`) | Imagem rodando no slot green |
+| `clouds/azure/k8s/kube-news-blue.yaml` (campo `image:` no Deployment blue) | Imagem rodando no slot blue (baseline de rollback) |
 
 > **Atenção ao sed:** o selector do Service usa `    version:` (4 espaços). Os labels do Deployment usam `      version:` (6 espaços). O padrão `^    version:` com âncora de início de linha garante que apenas o selector seja alterado.

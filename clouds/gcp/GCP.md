@@ -19,7 +19,7 @@ gcp/
 │   ├── ingress.yaml
 │   └── cert-issuer.yaml
 ├── argocd/
-│   └── argocd-app.yaml # Application aponta para gcp/k8s
+│   └── argocd-app.yaml # Application aponta para clouds/gcp/k8s
 └── monitoring/
     ├── values-kube-prometheus-stack.yaml
     └── values-loki-stack.yaml
@@ -33,7 +33,7 @@ gcp/
 | LB health probe | annotation `/healthz` obrigatória (bug AKS 1.34+) | Sem restrição — usa `/healthz` do ingress-nginx nativamente |
 | Contexto kubectl | `AKSCLAUDECODE` | `gke_<project>_us-central1_kube-news-gke` |
 | ArgoCD app name | `kube-news` | `kube-news-gcp` |
-| ArgoCD watch path | `k8s/` | `gcp/k8s/` |
+| ArgoCD watch path | `k8s/` | `clouds/gcp/k8s/` |
 | Probes da app | path `/` | path `/ready` (liveness `/health`) |
 
 ## Pré-requisitos
@@ -53,7 +53,7 @@ export PATH="$HOME/bin:$PATH"
 ## 1. Provisionar cluster GKE (Terraform)
 
 ```bash
-cd gcp/terraform
+cd clouds/gcp/terraform
 
 cp terraform.tfvars.example terraform.tfvars
 # Edite terraform.tfvars — preencha project_id
@@ -124,16 +124,16 @@ kubectl get secret argocd-initial-admin-secret -n argocd \
 ## 5. Registrar a Application GCP no ArgoCD
 
 ```bash
-kubectl apply -f gcp/argocd/argocd-app.yaml
+kubectl apply -f clouds/gcp/argocd/argocd-app.yaml
 ```
 
-A partir deste ponto, ArgoCD sincroniza `gcp/k8s/` automaticamente no cluster GKE.
+A partir deste ponto, ArgoCD sincroniza `clouds/gcp/k8s/` automaticamente no cluster GKE.
 
 ## 6. Aplicar cert-issuer e ingress
 
 ```bash
-kubectl apply -f gcp/k8s/cert-issuer.yaml
-kubectl apply -f gcp/k8s/ingress.yaml
+kubectl apply -f clouds/gcp/k8s/cert-issuer.yaml
+kubectl apply -f clouds/gcp/k8s/ingress.yaml
 ```
 
 ## 7. Stack de Observabilidade (GKE)
@@ -149,24 +149,24 @@ kubectl create namespace monitoring
 
 helm upgrade --install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
   --namespace monitoring \
-  --values gcp/monitoring/values-kube-prometheus-stack.yaml
+  --values clouds/gcp/monitoring/values-kube-prometheus-stack.yaml
 
 helm upgrade --install loki-stack grafana/loki-stack \
   --namespace monitoring \
-  --values gcp/monitoring/values-loki-stack.yaml
+  --values clouds/gcp/monitoring/values-loki-stack.yaml
 ```
 
 ## Blue-Green no GCP
 
-O mecanismo é idêntico ao Azure — o seletor `version:` no Service `kube-news` em `gcp/k8s/kube-news-blue.yaml` controla o tráfego.
+O mecanismo é idêntico ao Azure — o seletor `version:` no Service `kube-news` em `clouds/gcp/k8s/kube-news-blue.yaml` controla o tráfego.
 
 ```bash
 # Ver slot ativo
-grep "version:" gcp/k8s/kube-news-blue.yaml | tail -1
+grep "version:" clouds/gcp/k8s/kube-news-blue.yaml | tail -1
 
 # Trocar blue → green via GitOps
-sed -i 's/version: blue/version: green/' gcp/k8s/kube-news-blue.yaml
-git add gcp/k8s/kube-news-blue.yaml
+sed -i 's/version: blue/version: green/' clouds/gcp/k8s/kube-news-blue.yaml
+git add clouds/gcp/k8s/kube-news-blue.yaml
 git commit -m "blue-green: switch traffic to green (GCP)"
 git push
 # ArgoCD aplica em ~3 min
@@ -175,7 +175,7 @@ git push
 ## CI/CD
 
 O pipeline GitHub Actions existente (`docker build → push`) não muda.
-Para promover no GCP, atualize `gcp/k8s/kube-news-green.yaml` com o novo tag e `gcp/k8s/kube-news-blue.yaml` com `version: green` — o ArgoCD GCP aplica automaticamente.
+Para promover no GCP, atualize `clouds/gcp/k8s/kube-news-green.yaml` com o novo tag e `clouds/gcp/k8s/kube-news-blue.yaml` com `version: green` — o ArgoCD GCP aplica automaticamente.
 
 ## Contexts kubectl
 

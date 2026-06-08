@@ -28,8 +28,8 @@ Execute todas as coletas em paralelo sempre que possível.
 
 ### 1.2 Fonte da verdade (repositório git)
 
-- Leia `k8s/kube-news-blue.yaml` → extraia: imagem do deployment blue, selector `version:` do Service kube-news, e namespace alvo.
-- Leia `k8s/kube-news-green.yaml` → extraia: imagem do deployment green.
+- Leia `clouds/azure/k8s/kube-news-blue.yaml` → extraia: imagem do deployment blue, selector `version:` do Service kube-news, e namespace alvo.
+- Leia `clouds/azure/k8s/kube-news-green.yaml` → extraia: imagem do deployment green.
 - Execute `git log --oneline -10` → últimos 10 commits (detecta se CI/CD commitat recentemente).
 - Execute `git log --oneline -1 --format="%H %s %ai"` → último commit com hash completo e timestamp.
 
@@ -99,7 +99,7 @@ Identifique pods do ArgoCD que não estejam `Running`:
 
 ## Fase 3 — Documentação
 
-Crie a pasta `argocd/incidents/YYYY-MM-DD-HHMM/` na raiz do projeto (use a data/hora atual).
+Crie a pasta `clouds/azure/argocd/incidents/YYYY-MM-DD-HHMM/` na raiz do projeto (use a data/hora atual).
 Gere os dois arquivos abaixo.
 
 ---
@@ -235,10 +235,10 @@ Verificar a mensagem de erro em `status.operationState.message`. Causas comuns:
 - CRD não instalado → instalar o componente faltante antes
 
 ### Rollback para blue (tráfego)
-Editar `k8s/kube-news-blue.yaml`, alterar o selector do Service de `version: green` para `version: blue`, commitar e fazer push. ArgoCD aplica automaticamente:
+Editar `clouds/azure/k8s/kube-news-blue.yaml`, alterar o selector do Service de `version: green` para `version: blue`, commitar e fazer push. ArgoCD aplica automaticamente:
 ```bash
-# Editar k8s/kube-news-blue.yaml — selector: version: blue
-git add k8s/kube-news-blue.yaml
+# Editar clouds/azure/k8s/kube-news-blue.yaml — selector: version: blue
+git add clouds/azure/k8s/kube-news-blue.yaml
 git commit -m "rollback: switch traffic to blue"
 git push origin main
 # ArgoCD sincroniza em ~3 min
